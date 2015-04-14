@@ -205,7 +205,9 @@ public class GuitarView extends PApplet {
 	    me = new MidiEngine();
 
 		cp5 = new ControlP5(this);
+		 
 	    cp5.setColorLabel(0xFF000000);
+	    
 		traceTog = cp5.addToggle("trace").setPosition(70, 140)
 				.setSize(20, 20).setValue(true);
 		cp5.addToggle("pause").setPosition(70, 180).setSize(20, 20)
@@ -222,6 +224,8 @@ public class GuitarView extends PApplet {
         .setSize(150, 20)
 	    .setNumberOfTickMarks(15);
 	    
+	    cp5.addFrameRate().setInterval(10).setPosition(0,height - 10);
+
 	    //cp5.getTooltip().register("tempo","Slide with mouse to change tempo");
 	    
 		drawGuitar(); // setup guitar image in buffer
@@ -239,23 +243,25 @@ public class GuitarView extends PApplet {
 	}
 
 	private void tempo(float theTempo) { // change tempo with slider
-		if (me != null && me.sequencer != null) {
+		if (me.sequencer != null) {
 			me.sequencer.setTempoFactor(theTempo);
 		}
 	}
 	
 	private void pause(boolean theValue) {  // start and stop sequencer with  toggle
-      if (me != null) {
+      if (me.sequencer != null && me.sequence != null) {
 		if (theValue == true) {
 			me.sequencer.start();
 		} else {
 			me.sequencer.stop();
 		}
 	  }
+	    cp5.saveProperties(("properties"));
+	    //cp5.loadProperties(("properties"));
 	}
 	
 	private void reset() { // reset sequencer button
-		if (me != null) {
+		if (me.sequencer != null) {
 			me.sequencer.setTickPosition(0);
 			me.markers.clear();
 			if (guitarImage != null) {
@@ -268,7 +274,7 @@ public class GuitarView extends PApplet {
 	}
 	
 	private void load_file() { // load midi file button
-		if (me != null) {
+		if (me.sequencer != null) {
 			me.sequencer.stop();
 		}
 //		if (guitarImage != null) {
