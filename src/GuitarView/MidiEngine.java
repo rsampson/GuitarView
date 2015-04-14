@@ -28,15 +28,17 @@ public class MidiEngine {
 	public File selectedfile;
 	public List<FingerMarker> markers = new CopyOnWriteArrayList<FingerMarker>();
 	public Sequencer sequencer;
+	public Sequence sequence;
 	private List<Integer> channels = new ArrayList<Integer>();
 	private int chans = 0;  // total number of channels found
-	private controlP5.Toggle  tog;
+	//private controlP5.Toggle  tog;
 	private static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
 
-// Iterates the MIDI events of the first track and if they are a NOTE_ON or
-// NOTE_OFF message, adds them to the second track as a Meta event.
+	// Iterates the MIDI events of the first track and if they are a NOTE_ON or
+    // NOTE_OFF message, adds them to the second track as a Meta event.
 	private void addNotesToTrack(Track track, Track trk, int trk_num) // throws InvalidMidiDataException
 	{ 
+		System.out.println("Adding notes");
 		int chan;
 		for (int ii = 0; ii < track.size(); ii++) {
 			MidiEvent me = track.get(ii);
@@ -78,17 +80,19 @@ public class MidiEngine {
 						MidiEvent me2 = new MidiEvent(metaMessage, me.getTick());
 						trk.add(me2);
 					} catch (Exception e) {
-						System.err.println("Can't add Midi events to track");
+						System.err.println("Can't add Midi events to track " + e);
+						e.printStackTrace();
 					}
 				}
 			}
+			//System.out.println();
 		}
 	}
 	
 	private void printMessage(byte[] dat) {
-		System.out.print(String.format(" command: %x", dat[0] & 0xf0)
-				+ String.format(" channel: %x", dat[0] & 0x0f));
-		System.out.print(" note: " + dat[1] + " velocity: " + dat[2]);
+		System.out.print(String.format(" cmnd: %x", dat[0] & 0xf0)
+				+ String.format(" chan: %x", dat[0] & 0x0f));
+		System.out.print(" note: " + dat[1] + " velo: " + dat[2]);
 		System.out.println();
 	}	
 	
@@ -98,30 +102,32 @@ public class MidiEngine {
 		final int channel = dat[0] & 0x0f;
 		final int velocity = dat[2];
 		int note = dat[1];
-
 		// if (type == NOTE_ON || type == NOTE_OFF)
 		if ((command & 0x80) == 0x80) {
 			// only show if channel switch is on
 		if (chanTog.get(channels.indexOf(channel)).getState() == true) {
 				// hacked to fit note on fret board
-//				if (note < 76)
-//					note = note - OCTAVE;
-//				if (note > 40)
-//					note = note + OCTAVE;
-
-				int[] sf = GuitarView.noteToStringFrets((byte) note);
+				if (note > 76)
+					note = note - OCTAVE;
+				if (note < 40)
+					note = note + OCTAVE;
+				if (note > 76)
+					note = note - OCTAVE;
+				if (note < 40)
+					note = note + OCTAVE;
+                
+				int[] sf = GuitarView.noteToStringFret((byte) note);
 				FingerMarker fm;
 				fm = GuitarView.fm[sf[0]][sf[1]];
 				fm.setColor(channel); // color marker by channel #
-
 				if (command == NOTEON && velocity != 0) {
 					markers.add(fm);
-					System.out.print(" add ");
+					System.out.print("add ");
 				} else if (command == NOTEOFF || velocity == 0) {
 					if (markers.remove(fm)) {
-						System.out.print(" remove ");
+						System.out.print("rem ");
 					} else {
-						System.out.print(" note remove fail ");
+						System.out.print("err ");
 					}
 				}
 			}
@@ -136,27 +142,25 @@ public class MidiEngine {
 	      sequencer.open();
 
 		  MetaEventListener mel = new MetaEventListener() {
-
 				@Override
 				public void meta(MetaMessage meta) {
-//					final byte[] dat = meta.getData();
 					addNoteAsFingerMarker(meta.getData());
 				} 
 			};
-
 	      sequencer.addMetaEventListener(mel);
 	      sequencer.setTempoFactor((float).75); // slow down a bit
 	    } 
 	    catch(Exception e) 
 	    {
-	      System.err.println("Exception opening sequence");
+	      System.err.println("Exception opening sequencer " + e);
+	      e.printStackTrace();
 	    }
 	 }
 	
 	public void loadSequenceFromFile(File selFile)
 	{
 	    try {
-	      Sequence sequence = MidiSystem.getSequence(selFile);
+	      sequence = MidiSystem.getSequence(selFile);
 	      // scan all tracks and add notes
 	      Track[] tracks = sequence.getTracks();
 	      System.out.println("There are " + tracks.length + " tracks");
@@ -171,7 +175,8 @@ public class MidiEngine {
 	    } 
 	    catch(Exception e) 
 	    {
-	      System.err.println("Exception opening midi file");
+	      System.err.println("Exception opening midi file " + e);
+	      e.printStackTrace();
 	    }
 	 }	
 }
