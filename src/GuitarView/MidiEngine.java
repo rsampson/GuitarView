@@ -12,11 +12,10 @@ import javax.sound.midi.MidiEvent;
 import javax.sound.midi.MidiMessage;
 import javax.sound.midi.ShortMessage;
 import controlP5.ControlP5;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import processing.core.PApplet;
+
 
 public class MidiEngine {
 	private static final int OTHER = -1;
@@ -29,11 +28,31 @@ public class MidiEngine {
 	public List<FingerMarker> markers = new CopyOnWriteArrayList<FingerMarker>();
 	public Sequencer sequencer;
 	public Sequence sequence;
-	private List<Integer> channels = new ArrayList<Integer>();
-	private int chans = 0;  // total number of channels found
-	//private controlP5.Toggle  tog;
 	private static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
+	private static List<GuitarChannel> gchannels = new ArrayList<GuitarChannel>(); 
 
+	MidiEngine()
+	{
+	    try {
+	      sequencer = MidiSystem.getSequencer();
+	      sequencer.open();
+
+		  MetaEventListener mel = new MetaEventListener() {
+				@Override
+				public void meta(MetaMessage meta) {
+					addNoteAsFingerMarker(meta.getData());
+				} 
+			};
+	      sequencer.addMetaEventListener(mel);
+	      sequencer.setTempoFactor((float).75); // slow down a bit
+	    } 
+	    catch(Exception e) 
+	    {
+	      System.err.println("Exception opening sequencer " + e);
+	      e.printStackTrace();
+	    }
+	 }
+	
 	// Iterates the MIDI events of the first track and if they are a NOTE_ON or
     // NOTE_OFF message, adds them to the second track as a Meta event.
 	private void addNotesToTrack(Track track, Track trk, int trk_num) // throws InvalidMidiDataException
@@ -55,26 +74,12 @@ public class MidiEngine {
 				if (com != OTHER) {
 					byte[] b = sm.getMessage();
 					int l = (b == null ? 0 : b.length);
-					if (l > 3) System.out.println(" Running status");
-					// make available channels visible
+					// create available channels and make them visible
 					chan = b[0] & 0x0f;					
-//					chan = chan | ((trk_num & 0x0f) << 4);  // make a hybrid of track/channel
-					if ((l >= 1) && !channels.contains(chan)) {
-                        channels.add(chan);
-//                        System.out.println("Found channels");
-//            			for (Integer itgr : channels) {
-//            				System.out.println(" " + itgr + " ");
-//            			}
-//            			System.out.println();
-                        chanTog.add( GuitarView.cp5.addToggle("chan" + chan)
-								.setPosition(70 + (chans * 40), 60)
-								.setSize(20, 20)
-								.setValue(true)
-								.setColorActive(FingerMarker.codeColor(chan))
-						);
-						chans++; // this is a new channel
+					if ((l >= 1) && GuitarChannel.isNewChannel(chan)) {
+                        gchannels.add(new GuitarChannel(chanTog, chan, trk_num));
 					}
-					
+					// add note message to meta event track
 					try {
 						MetaMessage metaMessage = new MetaMessage(com, b, l);
 						MidiEvent me2 = new MidiEvent(metaMessage, me.getTick());
@@ -85,7 +90,6 @@ public class MidiEngine {
 					}
 				}
 			}
-			//System.out.println();
 		}
 	}
 	
@@ -96,7 +100,6 @@ public class MidiEngine {
 		System.out.println();
 	}	
 	
-	
 	private void addNoteAsFingerMarker(byte[] dat) {
 		final int command = dat[0] & 0xf0;
 		final int channel = dat[0] & 0x0f;
@@ -105,7 +108,7 @@ public class MidiEngine {
 		// if (type == NOTE_ON || type == NOTE_OFF)
 		if ((command & 0x80) == 0x80) {
 			// only show if channel switch is on
-		if (chanTog.get(channels.indexOf(channel)).getState() == true) {
+	    if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
 				// hacked to fit note on fret board
 				if (note > 76)
 					note = note - OCTAVE;
@@ -135,27 +138,6 @@ public class MidiEngine {
 		}
 	}
 	
-	MidiEngine()
-	{
-	    try {
-	      sequencer = MidiSystem.getSequencer();
-	      sequencer.open();
-
-		  MetaEventListener mel = new MetaEventListener() {
-				@Override
-				public void meta(MetaMessage meta) {
-					addNoteAsFingerMarker(meta.getData());
-				} 
-			};
-	      sequencer.addMetaEventListener(mel);
-	      sequencer.setTempoFactor((float).75); // slow down a bit
-	    } 
-	    catch(Exception e) 
-	    {
-	      System.err.println("Exception opening sequencer " + e);
-	      e.printStackTrace();
-	    }
-	 }
 	
 	public void loadSequenceFromFile(File selFile)
 	{
