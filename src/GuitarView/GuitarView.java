@@ -2,15 +2,12 @@ package GuitarView;
 
 /* OpenProcessing Tweak of *@*http://www.openprocessing.org/sketch/42730*@* */
 /* !do not delete the line above, required for linking your tweak if you upload again */
-
+ 
 import processing.core.PApplet;
 import processing.core.PGraphics;
 import processing.core.PImage;
 import processing.core.PConstants;
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-
 import controlP5.*;
 
 public class GuitarView extends PApplet {
