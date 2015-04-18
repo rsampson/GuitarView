@@ -2,6 +2,7 @@ package GuitarView;
 
 import java.util.ArrayList;
 import java.util.List;
+import processing.core.PApplet;
 
 // corresponds to a single midi channel played on a guitar
 public class GuitarChannel {
@@ -66,8 +67,32 @@ public class GuitarChannel {
 		this.stringStates = stringStates;
 	}
 
-	public int getIndexOfChannel(int channel) {
+	public static int getIndexOfChannel(int channel) {
 	  return channels.indexOf(channel);
 	}
 	
-}
+	public int[] findClosestFingering(List<Integer> sf) {
+		int[] result = new int[2];
+		float length = 0;
+		float shortestLength = 9999999;
+		// for each fingering pair in sf
+		for (int i = 0; i < sf.size() / 2; i = i + 2) {
+			length = /* PApplet.sqrt */ (2 *(PApplet.sq(sf.get(i) - lastStringPlayed))
+					+ PApplet.sq(sf.get(i + 1) - lastFretPlayed));
+			if (length < shortestLength) {
+				shortestLength = length;
+				result[0] = sf.get(i);
+				result[1] = sf.get(i + 1);
+			}
+		}
+		lastStringPlayed = result[0];
+		lastFretPlayed = result[1];
+		return result;
+	}
+	
+	public static GuitarChannel get(List<GuitarChannel> channels, int channel) {
+		return channels.get(getIndexOfChannel(channel));
+	}
+} 
+	
+
