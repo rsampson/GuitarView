@@ -9,6 +9,8 @@ import processing.core.PImage;
 import processing.core.PConstants;
 import java.io.File;
 import controlP5.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class GuitarView extends PApplet {
 
@@ -52,37 +54,37 @@ public class GuitarView extends PApplet {
 		guitarImage.text(getNoteString(s, f), x, y);
 	}
 	
-	public static int[] noteToStringFret(byte n) {
-		boolean found = false;
-		int[] finger = new int[2];
-		// scan fret board for a match on n
-		for (int f = 0; f < NUM_FRETS; f++) {
-			for (int s = 0; s < NUM_STRINGS; s++) {
-				if (noteNumbers[(s * NUM_FRETS) + f] == n) {
-					// add the marker that was found to the array
-					finger[0] = s;
-					finger[1] = f;
-					found = true;
-					break; // take first match
-				}
-			}
-			if (found == true) break;
-		}
-		return finger;
-	}
+//	public static int[] noteToStringFret(byte n) {
+//		boolean found = false;
+//		int[] finger = new int[2];
+//		// scan fret board for a match on n
+//		for (int f = 0; f < NUM_FRETS; f++) {
+//			for (int s = 0; s < NUM_STRINGS; s++) {
+//				if (noteNumbers[(s * NUM_FRETS) + f] == n) {
+//					// add the marker that was found to the array
+//					finger[0] = s;
+//					finger[1] = f;
+//					found = true;
+//					break; // take first match
+//				}
+//			}
+//			if (found == true) break;
+//		}
+//		return finger;
+//	}
 	
 	// return where note may be found on fret board. There may be up to 3 matches
-	public static int[] noteToStringFrets(byte n) {
-		int[] finger = new int[8];
+	public static List<Integer> noteToStringFrets(byte n) {
+		List<Integer> finger = new ArrayList<Integer>();
 		int match = 0;
-		// scan fret board for a match on n
+		// scan fret board for a match on n scanned lowest to highest pitch
 		for (int f = 0; f < NUM_FRETS; f++) {
 			for (int s = 0; s < NUM_STRINGS; s++) {
 				if (noteNumbers[(s * NUM_FRETS) + f] == n) {
 					// add the marker that was found to the array
-					finger[match] = s;
-					finger[match + 1] = f;
-					match++;
+					finger.add(match, s);
+					finger.add(match + 1, f);
+					match = match + 2;
 					break; // take first match, there is only one per string
 				}
 			}
@@ -273,24 +275,21 @@ public class GuitarView extends PApplet {
 	private void load_file() { // load midi file button
 		if (me.sequencer != null) {
 			me.sequencer.stop();
+			trace();
 		}
-//		if (guitarImage != null) {
-//			guitarImage.beginDraw();
-//			drawGuitar();
-//			image(guitarImage, 0, 0);
-//			guitarImage.endDraw();
-//		}
-
 		selectInput("Select a Midi file to play:", "fileSelected");
 	}
 
-	private void trace(float theValue) { // clear guitar image
+	private void trace() { // clear guitar image
     // hack for null pointer
-		if (guitarImage != null) {
-			guitarImage.beginDraw();
-			drawGuitar();
-			image(guitarImage, 0, 0);
-			guitarImage.endDraw();
+		if (me.sequencer != null) {
+			me.markers.clear();
+			if (guitarImage != null) {
+				guitarImage.beginDraw();
+				drawGuitar();
+				image(guitarImage, 0, 0);
+				guitarImage.endDraw();
+			}
 		}
 	}
 	
