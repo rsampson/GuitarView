@@ -110,28 +110,35 @@ public class MidiEngine {
 			// only show if channel switch is on
 	    if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
 				// hacked to fit note on fret board
-				if (note > 76)
-					note = note - OCTAVE;
-				if (note < 40)
-					note = note + OCTAVE;
-				if (note > 76)
-					note = note - OCTAVE;
-				if (note < 40)
-					note = note + OCTAVE;
+//				if (note > 76)
+//					note = note - OCTAVE;
+//				if (note < 40)
+//					note = note + OCTAVE;
+//				if (note > 76)
+//					note = note - OCTAVE;
+//				if (note < 40)
+//					note = note + OCTAVE;
                 
-				int[] sf = GuitarView.noteToStringFret((byte) note);
+				List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
 				FingerMarker fm;
-				fm = GuitarView.fm[sf[0]][sf[1]];
-				fm.setColor(channel); // color marker by channel #
 				if (command == NOTEON && velocity != 0) {
+					int[] bestSf = GuitarChannel.get(gchannels, channel).findClosestFingering(sf);
+					fm = GuitarView.fm[bestSf[0]][bestSf[1]];
+					fm.setColor(channel); // color marker by channel #
 					markers.add(fm);
 					System.out.print("add ");
 				} else if (command == NOTEOFF || velocity == 0) {
-					if (markers.remove(fm)) {
-						System.out.print("rem ");
-					} else {
-						System.out.print("err ");
-					}
+					// This is somewhat sketchy, we have lost track of the fingering selected,
+					// so erase all possibilities.
+					for (int n = 0; n < sf.size(); n = n + 2) {
+						fm = GuitarView.fm[sf.get(n)][sf.get(n + 1)];
+						fm.setColor(channel); // color marker by channel #
+						if (markers.remove(fm)) {
+							System.out.print("rem ");
+						} else {
+							System.out.print("err ");
+						}
+				    }
 				}
 			}
 			printMessage(dat);
