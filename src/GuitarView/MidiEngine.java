@@ -11,6 +11,7 @@ import javax.sound.midi.Track;
 import javax.sound.midi.MidiEvent;
 import javax.sound.midi.MidiMessage;
 import javax.sound.midi.ShortMessage;
+
 import controlP5.ControlP5;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,8 +29,8 @@ public class MidiEngine {
 	public List<FingerMarker> markers = new CopyOnWriteArrayList<FingerMarker>();
 	public Sequencer sequencer;
 	public Sequence sequence;
-	private static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
-	private static List<GuitarChannel> gchannels = new ArrayList<GuitarChannel>(); 
+	public static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
+	public static List<GuitarChannel> gchannels = new ArrayList<GuitarChannel>(); 
 
 	MidiEngine()
 	{
@@ -41,6 +42,13 @@ public class MidiEngine {
 				@Override
 				public void meta(MetaMessage meta) {
 					addNoteAsFingerMarker(meta.getData());
+					// handle looping
+                    if (GuitarView.loopState == true) {
+                    	if (sequencer.getTickPosition() > GuitarView.loopTickMax) {
+                    		sequencer.setTickPosition(GuitarView.loopTickMin);
+                    		System.out.print("loop endpoint hit");
+                    	}
+                    }
 				} 
 			};
 	      sequencer.addMetaEventListener(mel);
@@ -57,7 +65,6 @@ public class MidiEngine {
     // NOTE_OFF message, adds them to the second track as a Meta event.
 	private void addNotesToTrack(Track track, Track trk, int trk_num) // throws InvalidMidiDataException
 	{ 
-		System.out.println("Adding notes");
 		int chan;
 		for (int ii = 0; ii < track.size(); ii++) {
 			MidiEvent me = track.get(ii);
@@ -94,9 +101,9 @@ public class MidiEngine {
 	}
 	
 	private void printMessage(byte[] dat) {
-		System.out.print(String.format(" cmnd: %x", dat[0] & 0xf0)
-				+ String.format(" chan: %x", dat[0] & 0x0f));
-		System.out.print(" note: " + dat[1] + " velo: " + dat[2]);
+		System.out.print(String.format(" cmd %x", dat[0] & 0xf0)
+				+ String.format(" ch %x", dat[0] & 0x0f));
+		System.out.print(" nt " + dat[1] + " vel " + dat[2]);
 		System.out.println();
 	}	
 	
@@ -105,10 +112,12 @@ public class MidiEngine {
 		final int channel = dat[0] & 0x0f;
 		final int velocity = dat[2];
 		int note = dat[1];
-		// if (type == NOTE_ON || type == NOTE_OFF)
-		if ((command & 0x80) == 0x80) {
+		// if (type == NOTE_ON || type == NOTE_OFF) and the note fall on the guitar fret board
+		if ((command & 0x80) == 0x80 && note < 77 && note > 39) {
 			// only show if channel switch is on
 	    if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
+	    	    // offset note by number in octave number box
+	    	    note = note + (OCTAVE * ((int)GuitarView.getOctaveRadioButton().getValue()) - 2);
 				// hacked to fit note on fret board
 //				if (note > 76)
 //					note = note - OCTAVE;
@@ -121,11 +130,16 @@ public class MidiEngine {
                 
 				List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
 				FingerMarker fm;
+				GuitarChannel guitarchannel = GuitarChannel.get(gchannels, channel);
 				if (command == NOTEON && velocity != 0) {
-					int[] bestSf = GuitarChannel.get(gchannels, channel).findClosestFingering(sf);
+					// pick best possible fingering position
+					int[] bestSf = guitarchannel.findClosestFingering(sf);
 					fm = GuitarView.fm[bestSf[0]][bestSf[1]];
 					fm.setColor(channel); // color marker by channel #
+					// set finger marker in its channel string position
 					markers.add(fm);
+					//guitarchannel.getStringStates().set(bestSf[0], fm);
+					guitarchannel.getStringStates().add( fm);
 					System.out.print("add ");
 				} else if (command == NOTEOFF || velocity == 0) {
 					// This is somewhat sketchy, we have lost track of the fingering selected,
@@ -138,6 +152,7 @@ public class MidiEngine {
 						} else {
 							System.out.print("err ");
 						}
+						guitarchannel.getStringStates().remove(fm);
 				    }
 				}
 			}
