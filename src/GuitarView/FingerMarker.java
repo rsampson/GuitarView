@@ -10,7 +10,7 @@ public class FingerMarker {
 	  private GuitarView vg;
 	  private PGraphics pg;
 	  
-	  final static int black = 0xDF0000;
+	  final static int black = 0xDF2A1F1F;
 	  final static int brown = 0xDF5A2A12; 
 	  final static int red = 0xDFDF0712;
 	  final static int orange = 0xDFE86309;
@@ -28,7 +28,8 @@ public class FingerMarker {
 	  final static int liteorange = 0xDFF6AF4A;
 	  final static int liteyellow = 0xDFF8D554; 
 	  final static int litegreen  = 0xDF9CF576;
-
+	  final public static int invisible  = 0x0;
+	  
 	  // a circle must be on the fret of a string when it is created.
 	  FingerMarker(GuitarView vg, PGraphics pg, GuitarString gs, int fret) {
 	    myString = gs;
