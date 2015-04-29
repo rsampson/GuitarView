@@ -9,7 +9,7 @@ import processing.core.PApplet;
 // corresponds to a single midi channel played on a guitar
 public class GuitarChannel {
 	private static List<Integer> channels = new ArrayList<Integer>();
-	private static int chans = 0;  // total number of channels found
+	private static int chans;  // total number of channels found
     private int lastFretPlayed;
 	private int lastStringPlayed;
 	private int track;
@@ -57,6 +57,10 @@ public class GuitarChannel {
 		return channel | ((track & 0x0f) << 4);  // make a hybrid of track/channel
 	}
 
+	public int getChannel() {
+		return channel;
+	}
+
 	public int getLastFretPlayed() {
 		return lastFretPlayed;
 	}
@@ -78,7 +82,7 @@ public class GuitarChannel {
 	}
 	
 	public int[] findClosestFingering(List<Integer> sf) {
-		int[] result = new int[2];
+		int[] result = {0,0};
 		float length = 0;
 		float shortestLength = 9999999;
 		// for each fingering pair in sf
@@ -94,7 +98,9 @@ public class GuitarChannel {
 			}
 		}
 		lastStringPlayed = result[0];
+//		System.out.print(" last string ch "+ channel +" is "+ lastStringPlayed +" ");
 		lastFretPlayed = result[1];
+//		System.out.print(" last fret "+" is "+ lastFretPlayed +" ");
 		return result;
 	}
 	
