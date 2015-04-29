@@ -31,6 +31,7 @@ public class MidiEngine {
 	public Sequence sequence;
 	public static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
 	public static List<GuitarChannel> gchannels = new ArrayList<GuitarChannel>(); 
+	private static int noteCount;
 
 	MidiEngine()
 	{
@@ -123,30 +124,28 @@ public class MidiEngine {
 //					note = note - OCTAVE;
 //				if (note < 40)
 //					note = note + OCTAVE;
-//				if (note > 76)
-//					note = note - OCTAVE;
-//				if (note < 40)
-//					note = note + OCTAVE;
                 
 				List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
-				FingerMarker fm;
+                FingerMarker fm;
 				GuitarChannel guitarchannel = GuitarChannel.get(gchannels, channel);
 				if (command == NOTEON && velocity != 0) {
 					// pick best possible fingering position
 					int[] bestSf = guitarchannel.findClosestFingering(sf);
 					fm = GuitarView.fm[bestSf[0]][bestSf[1]];
 					fm.setColor(channel); // color marker by channel #
+					fm.setChannel(guitarchannel);   // !!!!!!!! may be able to internalize above
 					// set finger marker in its channel string position
 					markers.add(fm);
 					//guitarchannel.getStringStates().set(bestSf[0], fm);
 					guitarchannel.getStringStates().add( fm);
 					System.out.print("add ");
-				} else if (command == NOTEOFF || velocity == 0) {
+				} else /* if (command == NOTEOFF || velocity == 0) */ {
 					// This is somewhat sketchy, we have lost track of the fingering selected,
 					// so erase all possibilities.
 					for (int n = 0; n < sf.size(); n = n + 2) {
 						fm = GuitarView.fm[sf.get(n)][sf.get(n + 1)];
-						fm.setColor(channel); // color marker by channel #
+						fm.setInUse(false);
+						//fm.setColor(channel); // color marker by channel #
 						if (markers.remove(fm)) {
 							System.out.print("rem ");
 						} else {
@@ -157,6 +156,11 @@ public class MidiEngine {
 				}
 			}
 			printMessage(dat);
+			// update progress slider periodically
+			if (noteCount % 30 == 0){
+				GuitarView.getProgSlide().setValue(sequencer.getTickPosition());
+			}
+			noteCount++;
 		}
 	}
 	
@@ -175,6 +179,7 @@ public class MidiEngine {
 	        t++;
 	      }
 	      sequencer.setSequence(sequence);
+	      GuitarView.getProgSlide().setRange(0,sequencer.getTickLength());
 	      sequencer.start();
 	    } 
 	    catch(Exception e) 
