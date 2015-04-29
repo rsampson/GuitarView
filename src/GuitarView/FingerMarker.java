@@ -9,6 +9,8 @@ public class FingerMarker {
 	  private int x, y;
 	  private GuitarView vg;
 	  private PGraphics pg;
+	  private GuitarChannel gc;
+	  private boolean inUse;
 	  
 	  final static int black = 0xDF2A1F1F;
 	  final static int brown = 0xDF5A2A12; 
@@ -34,17 +36,26 @@ public class FingerMarker {
 	  FingerMarker(GuitarView vg, PGraphics pg, GuitarString gs, int fret) {
 	    myString = gs;
 	    if (fret != 0)
-	      this.x = (vg.fretLines[fret - 1] + vg.fretLines[fret] + mySize)/2  + (mySize / 2);
+	      this.x = vg.fretLines[fret] -  mySize;
 	    this.y= myString.getY();
 	    this.vg = vg;
 	    this.pg = pg;
+	    inUse = false;
 	  }
 	  
  	  public void setColor(int chan) {
  		 myColor = codeColor(chan);
  	  }
 
- 	 	  public static int codeColor(int chan) {
+ 	  public void setInUse(boolean inUse) {
+		this.inUse = inUse;
+	}
+
+	public void setChannel(GuitarChannel gc) {
+		this.gc = gc;
+	  }
+
+		public static int codeColor(int chan) {
 		  switch (chan & 0x0f) {
 		  case 0:  
 			  return black;
@@ -96,11 +107,22 @@ public class FingerMarker {
 	  }
 	  
 	  // draw what notes have been played in the past
-	  public void drawTracer() {
-	    pg.beginDraw();
-	    pg.fill(myColor);
-	    pg.stroke(myColor);
-	    pg.ellipse(x, y, mySize / 3, mySize / 3);
-	    pg.endDraw();
-	  }
+	public void drawTracer() {
+		// only draw once per use
+		if (!inUse) {
+			int _x, _y;
+			setInUse(true);
+			pg.beginDraw();
+			pg.fill(myColor);
+			pg.stroke(myColor);
+			pg.ellipse(x, y, mySize / 2, mySize / 2);
+			// draw vector trace
+			pg.strokeWeight(1);
+			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
+			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
+			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
+					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
+			pg.endDraw();
+		}
+	}
 }
