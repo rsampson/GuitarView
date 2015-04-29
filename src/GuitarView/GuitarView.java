@@ -9,37 +9,45 @@ import processing.core.PImage;
 import processing.core.PConstants;
 import java.io.File;
 import controlP5.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.sound.midi.Sequencer;
+import javax.swing.JOptionPane;
 
 public class GuitarView extends PApplet {
-
-	public int[] fretLines = new int[NUM_FRETS]; // x locations of all frets
-	public int guitarX, guitarY, guitarH; // parameters for the guitar
-	public static int dX, dY; // grid to put controls on
-
+	
 	public static final int NUM_STRINGS = 6; // number of strings on guitar
 	public static final int NUM_FRETS = 13; // number of frets shown on fret board
 	public static final int NUM_CHANNELS = 16; // max number of channels in sequence
+
+	public static int[] fretLines = new int[NUM_FRETS]; // x locations of all frets
+	public static GuitarString[] strings = new GuitarString[6];;
+
+	public int guitarX, guitarY, guitarH; // parameters for the guitar
+	public static int dX, dY; // grid to put controls on
+
 	public final int copper = color(100, 80, 30); 
 	public final int brass = color(181, 166, 66); 
 	private final int ivory = color(0xFFEEEBB0);
-	private  static GuitarString[] strings = new GuitarString[6];;
+	
 	private  static PGraphics guitarImage; // for keeping the drawn image of the guitar.
 	private PImage img;
     private MidiEngine me;
+	private static Slider progSlide;
     public static FingerMarker[][] fm = new FingerMarker[NUM_STRINGS][NUM_FRETS];  //pre-made markers for each string  and fret
+    
     public static ControlP5 cp5;
     //private static controlP5.Toggle[] tracTog;  // track filter switches
     private static controlP5.Toggle   traceTog; // enable/disable tracing
     private static controlP5.Toggle   pauseTog;  
-    public static long loopTickMax = 0, loopTickMin = 0;     // looping end points
+    public static long loopTickMax, loopTickMin;     // looping end points
     public static boolean loopState = false;
     private static controlP5.RadioButton octaveRadioButton;
 	// map note numbers to string and fret position. Will change for different guitar tunings
 	// array is organized by string for a 13 fret section of the fret board.
+    
     private final static int[] noteNumbers = { 
 			40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,	51, 52, 
 			45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
@@ -76,6 +84,11 @@ public class GuitarView extends PApplet {
 					break; // take first match, there is only one per string
 				}
 			}
+		}
+		// hack !!!! trying to determine why this is needed
+		if ( n == 40) {
+			finger.add(0, 0);
+			finger.add(1, 0);
 		}
 		return finger;
 	}
@@ -208,7 +221,7 @@ public class GuitarView extends PApplet {
          .setColorCaptionLabel(0xffffffff);
 		
 		pauseTog = cp5.addToggle("pause").setPosition(6 * dX, 3 * dY).setSize(35, 20)
-				.setValue(true);
+				.setValue(false);
 		cp5.addButton("reset").setPosition(7 * dX, 3 * dY).setSize(35, 20)
 		         .setColorCaptionLabel(0xffffffff);
 		cp5.addButton("fwd").setPosition(8 * dX, 3 * dY).setSize(35, 20)
@@ -222,38 +235,46 @@ public class GuitarView extends PApplet {
         .setRange((float).25,(float)1.5)
         .setValue((float).75)
         .setPosition(dX, 3 * dY)
-        .setSize(150, 20)
-	    .setNumberOfTickMarks(15);
-	    
+        .setSize(150, 20);
+
+	    progSlide = cp5.addSlider("progress")
+        .setRange((float)0,(float)1)
+        .setValue((float)0)
+        .setPosition(11 * dX, 3 * dY)
+        .setSize(150, 20).setDecimalPrecision(0);
    
 	    octaveRadioButton = cp5.addRadioButton("octave")
 	            .setPosition(dX, 4 * dY)
 	            .setSize(35,20)
-//	            .setColorForeground(color(120))
-//	            .setColorActive(color(255))
-//	            .setColorLabel(color(255))
 	            .setItemsPerRow(3)
-	            .setSpacingColumn(30)
+	            .setSpacingColumn(20)
 	            .addItem("-",-1)
 	            .addItem("0",0)
 	            .addItem("+",1)
 	            .activate(1)
 	            ;
 
-	    //cp5.addFrameRate().setInterval(10).setPosition(0,height - 10);
-
 	    //cp5.getTooltip().register("tempo","Slide with mouse to change tempo");
-	    
+		cp5.loadProperties(("properties"));
+
 		drawGuitar(); // setup guitar image in buffer
 		initFingerMarkers();
+		this.textSize(25);
+		text("Guitar View", dX, 25);
+		frameRate(20);
 	}
 	
+	public static Slider getProgSlide() {
+		return progSlide;
+	}
+
 	public void fileSelected(File selection) {
 		  if (selection == null) {
 		    println("Window was closed or the user hit cancel.");
 		  } 
 		  else {
 		    println("User selected " + selection.getAbsolutePath());
+		    text(selection.getAbsolutePath(), 13 * dX, 10);
 		    me.loadSequenceFromFile( selection);
 		  }	
 	}
@@ -264,12 +285,22 @@ public class GuitarView extends PApplet {
 		}
 	}
 	
+	private void progress(float thePosition) { // change position in sequence
+		Sequencer seq = me.sequencer;
+		if (seq != null && seq.getSequence() != null) {
+			seq.stop();
+			seq.setTickPosition((long) thePosition);
+			seq.start();
+			println("Position set to " + thePosition + " ");
+		}
+	}
+	
 	private void pause(boolean theValue) { // start and stop sequencer with
 		// save pause points for looping
 		Sequencer seq = me.sequencer;
 
 		if (seq != null && me.sequence != null) {
-			if (theValue == true) {
+			if (theValue == false) {
 				seq.start();
 			} else {
 				seq.stop();
@@ -278,14 +309,10 @@ public class GuitarView extends PApplet {
 					loopTickMax = seq.getTickPosition();
 					loopTickMin = (long) min(loopTickMax, loopTickMin);
 					loopTickMax = (long) max(loopTickMax, loopTickMin);
-					System.out.print("max loop tick = " + loopTickMax + " ");
-					System.out.print("min loop tick = " + loopTickMin + " ");
-				} // toggle
+				} 
 				loopState = false;
 			}
 		}
-		cp5.saveProperties(("properties"));
-		// cp5.loadProperties(("properties"));
 	}
 	
 	private void reset() { // reset sequencer button
@@ -302,7 +329,7 @@ public class GuitarView extends PApplet {
 	    loopTickMax = 0;
 	    loopTickMin = 0;     // looping end points
 	    loopState = false;
-	    pauseTog.setValue(true);
+	    pauseTog.setValue(false);
 	}
 
 	private void Loop() { // reset sequencer button
@@ -311,7 +338,7 @@ public class GuitarView extends PApplet {
 		}
 		if (loopTickMax != 0) {
 			loopState = true;
-		    pauseTog.setValue(true);
+		    pauseTog.setValue(false);
 		}
 	}
 
@@ -319,14 +346,14 @@ public class GuitarView extends PApplet {
 	private void fwd() { // reset sequencer button
 		Sequencer seq = me.sequencer;
 		if (seq != null) {
-			seq.setTickPosition(seq.getTickPosition() + 1000);
+			seq.setTickPosition(seq.getTickPosition() + 10000);
 		}
 	}
 	
 	private void rev() { // reset sequencer button
 		Sequencer seq = me.sequencer;
 		if (seq != null) {
-			seq.setTickPosition(seq.getTickPosition() - 1000);
+			seq.setTickPosition(seq.getTickPosition() - 10000);
 		}
 	}
 	
@@ -354,7 +381,7 @@ public class GuitarView extends PApplet {
 		}
 	}	
 	
-	private void trace() { // clear guitar image
+	private void trace() { 
     // hack for null pointer
 		if (me.sequencer != null) {
 			me.markers.clear();
@@ -368,8 +395,6 @@ public class GuitarView extends PApplet {
 	}
 	
 	public void draw() {
-		
-		
 		guitarImage.beginDraw();
 		image(guitarImage, 0, 0); // render image of guitar from buffer
 		guitarImage.endDraw();
@@ -388,10 +413,15 @@ public class GuitarView extends PApplet {
 				if (getTraceTog().getValue() != 0) m.drawTracer();
 			}
 		}
-		//cp5.draw();  // we need to manually draw controlP5 when using P2D
 	}
 
 	public static void main(String _args[]) {
 		PApplet.main(new String[] { GuitarView.class.getName() });
+		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+			public void run() {
+				System.out.println("In shutdown hook");
+				cp5.saveProperties(("properties"));
+			}
+		}, "Shutdown-thread"));
 	}
 }
