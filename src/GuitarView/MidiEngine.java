@@ -1,6 +1,6 @@
 package GuitarView;
 
-// some parts taken from: http://stackoverflow.com/questions/27987400/how-to-get-note-on-off-messages-from-a-midi-sequence
+// some ideas stolen from: http://stackoverflow.com/questions/27987400/how-to-get-note-on-off-messages-from-a-midi-sequence
 import java.io.File;
 import javax.sound.midi.MetaEventListener;
 import javax.sound.midi.MetaMessage;
@@ -47,13 +47,12 @@ public class MidiEngine {
                     if (GuitarView.loopState == true) {
                     	if (sequencer.getTickPosition() > GuitarView.loopTickMax) {
                     		sequencer.setTickPosition(GuitarView.loopTickMin);
-                    		System.out.print("loop endpoint hit");
                     	}
                     }
 				} 
 			};
 	      sequencer.addMetaEventListener(mel);
-	      sequencer.setTempoFactor((float).75); // slow down a bit
+	      //sequencer.setTempoFactor((float).75); // slow down a bit
 	    } 
 	    catch(Exception e) 
 	    {
@@ -64,7 +63,7 @@ public class MidiEngine {
 	
 	// Iterates the MIDI events of the first track and if they are a NOTE_ON or
     // NOTE_OFF message, adds them to the second track as a Meta event.
-	private void addNotesToTrack(Track track, Track trk, int trk_num) // throws InvalidMidiDataException
+	private void addNotesToTrack(Track track, Track trk) // throws InvalidMidiDataException
 	{ 
 		int chan;
 		for (int ii = 0; ii < track.size(); ii++) {
@@ -85,11 +84,12 @@ public class MidiEngine {
 					// create available channels and make them visible
 					chan = b[0] & 0x0f;					
 					if ((l >= 1) && GuitarChannel.isNewChannel(chan)) {
-                        gchannels.add(new GuitarChannel(chanTog, chan, trk_num));
+                        gchannels.add(new GuitarChannel(chanTog, chan));
 					}
 					// add note message to meta event track
 					try {
 						MetaMessage metaMessage = new MetaMessage(com, b, l);
+						//printMessage(b);
 						MidiEvent me2 = new MidiEvent(metaMessage, me.getTick());
 						trk.add(me2);
 					} catch (Exception e) {
@@ -111,21 +111,17 @@ public class MidiEngine {
 	private void addNoteAsFingerMarker(byte[] dat) {
 		final int command = dat[0] & 0xf0;
 		final int channel = dat[0] & 0x0f;
-		final int velocity = dat[2];
 		int note = dat[1];
+		final int velocity = dat[2];
 		// if (type == NOTE_ON || type == NOTE_OFF) and the note fall on the guitar fret board
 		if ((command & 0x80) == 0x80 && note < 77 && note > 39) {
 			// only show if channel switch is on
 	    if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
 	    	    // offset note by number in octave number box
-	    	    note = note + (OCTAVE * ((int)GuitarView.getOctaveRadioButton().getValue()) - 2);
-				// hacked to fit note on fret board
-//				if (note > 76)
-//					note = note - OCTAVE;
-//				if (note < 40)
-//					note = note + OCTAVE;
+	    	    //note = note + (OCTAVE * ((int)GuitarView.getOctaveRadioButton().getValue() - 2));
                 
 				List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
+				if (sf.size() == 0) System.out.print(" sf size error ");
                 FingerMarker fm;
 				GuitarChannel guitarchannel = GuitarChannel.get(gchannels, channel);
 				if (command == NOTEON && velocity != 0) {
@@ -135,9 +131,10 @@ public class MidiEngine {
 					fm.setColor(channel); // color marker by channel #
 					fm.setChannel(guitarchannel);   // !!!!!!!! may be able to internalize above
 					// set finger marker in its channel string position
+					markers.remove(fm);  // hack!!! make sure its not there already
 					markers.add(fm);
 					//guitarchannel.getStringStates().set(bestSf[0], fm);
-					guitarchannel.getStringStates().add( fm);
+					//guitarchannel.getStringStates().add( fm);
 					System.out.print("add ");
 				} else /* if (command == NOTEOFF || velocity == 0) */ {
 					// This is somewhat sketchy, we have lost track of the fingering selected,
@@ -145,13 +142,12 @@ public class MidiEngine {
 					for (int n = 0; n < sf.size(); n = n + 2) {
 						fm = GuitarView.fm[sf.get(n)][sf.get(n + 1)];
 						fm.setInUse(false);
-						//fm.setColor(channel); // color marker by channel #
 						if (markers.remove(fm)) {
 							System.out.print("rem ");
 						} else {
 							System.out.print("err ");
 						}
-						guitarchannel.getStringStates().remove(fm);
+						//guitarchannel.getStringStates().remove(fm);
 				    }
 				}
 			}
@@ -165,27 +161,30 @@ public class MidiEngine {
 	}
 	
 	
-	public void loadSequenceFromFile(File selFile)
-	{
-	    try {
-	      sequence = MidiSystem.getSequence(selFile);
-	      // scan all tracks and add notes
-	      Track[] tracks = sequence.getTracks();
-	      System.out.println("There are " + tracks.length + " tracks");
-	      Track trk = sequence.createTrack();
-	      int t = 0;
-	      for (Track track : tracks) {
-	        addNotesToTrack(track, trk, t);
-	        t++;
-	      }
-	      sequencer.setSequence(sequence);
-	      GuitarView.getProgSlide().setRange(0,sequencer.getTickLength());
-	      sequencer.start();
-	    } 
-	    catch(Exception e) 
-	    {
-	      System.err.println("Exception opening midi file " + e);
-	      e.printStackTrace();
-	    }
-	 }	
+	public void loadSequenceFromFile(File selFile) {
+		sequencer.stop();
+		GuitarChannel.killChannels(gchannels, chanTog);
+		try {
+			sequence = MidiSystem.getSequence(selFile);
+			// scan all tracks and add notes
+			Track[] tracks = sequence.getTracks();
+			System.out.println("There are " + tracks.length + " tracks");
+			Track trk = sequence.createTrack();
+			for (Track track : tracks) {
+				addNotesToTrack(track, trk);
+			}
+			sequencer.setSequence(sequence);
+		} catch (Exception e) {
+			System.err.println("Exception opening midi file " + e);
+			e.printStackTrace();
+		}
+        GuitarView.loopState = false;
+        GuitarView.loopTickMax = 0;
+        GuitarView.loopTickMin = 0;
+        sequencer.setTickPosition(0);
+		GuitarView.getProgSlide().setRange(0, sequencer.getTickLength());
+		// call garbage collector before we get going
+		System.gc();
+		sequencer.start();
+	}
 }
