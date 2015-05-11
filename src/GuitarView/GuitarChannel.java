@@ -12,14 +12,12 @@ public class GuitarChannel {
 	private static int chans;  // total number of channels found
     private int lastFretPlayed;
 	private int lastStringPlayed;
-	private int track;
 	private int channel;
 	private List<FingerMarker> stringStates;
     
 
-	GuitarChannel(List<controlP5.Toggle> togl, int chan, int track){
+	GuitarChannel(List<controlP5.Toggle> togl, int chan){
 		channels.add(chan);
-		this.track = track;
 		channel = chan;
 		stringStates = new CopyOnWriteArrayList<FingerMarker>();
 		
@@ -37,6 +35,16 @@ public class GuitarChannel {
         chans++;
 	}
 	
+	public static void killChannels(List<GuitarChannel> gcl, List<controlP5.Toggle> togl){
+		channels.clear();
+	    chans  = 0;
+		for (controlP5.Toggle t : togl) {
+			t.remove();
+		}
+        togl.clear();
+        gcl.clear();
+ 	}
+	
 	public List<FingerMarker> getStringStates() {
 		return stringStates;
 	}
@@ -53,10 +61,6 @@ public class GuitarChannel {
 		return chans;
 	}
     
-	public int getTrackhan() {
-		return channel | ((track & 0x0f) << 4);  // make a hybrid of track/channel
-	}
-
 	public int getChannel() {
 		return channel;
 	}
@@ -98,9 +102,7 @@ public class GuitarChannel {
 			}
 		}
 		lastStringPlayed = result[0];
-//		System.out.print(" last string ch "+ channel +" is "+ lastStringPlayed +" ");
 		lastFretPlayed = result[1];
-//		System.out.print(" last fret "+" is "+ lastFretPlayed +" ");
 		return result;
 	}
 	
