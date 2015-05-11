@@ -21,11 +21,11 @@ public class GuitarString {
 		pg.strokeWeight(3);
 		pg.fill(vg.copper);
 		pg.stroke(vg.copper);
-		pg.line(vg.guitarX, y, vg.width, y);
+		pg.line(GuitarView.guitarX, y, vg.width, y);
 		// draw shadow
 		pg.fill(10, 10, 3);
 		pg.stroke(10, 10, 3);
-		pg.line(vg.guitarX, y + 3, vg.width, y + 3);
+		pg.line(GuitarView.guitarX, y + 3, vg.width, y + 3);
 
 	}
 }
