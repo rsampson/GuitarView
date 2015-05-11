@@ -36,7 +36,7 @@ public class FingerMarker {
 	  FingerMarker(GuitarView vg, PGraphics pg, GuitarString gs, int fret) {
 	    myString = gs;
 	    if (fret != 0)
-	      this.x = vg.fretLines[fret] -  mySize;
+	      this.x = GuitarView.fretLines[fret] -  mySize;
 	    this.y= myString.getY();
 	    this.vg = vg;
 	    this.pg = pg;
@@ -51,8 +51,8 @@ public class FingerMarker {
 		this.inUse = inUse;
 	}
 
-	public void setChannel(GuitarChannel gc) {
-		this.gc = gc;
+	public void setChannel(GuitarChannel guitarchannel) {
+		gc = guitarchannel;
 	  }
 
 		public static int codeColor(int chan) {
@@ -117,11 +117,11 @@ public class FingerMarker {
 			pg.stroke(myColor);
 			pg.ellipse(x, y, mySize / 2, mySize / 2);
 			// draw vector trace
-			pg.strokeWeight(1);
-			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
-			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
-			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
-					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
+//			pg.strokeWeight(1);
+//			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
+//			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
+//			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
+//					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
 			pg.endDraw();
 		}
 	}
