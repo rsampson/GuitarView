@@ -4,12 +4,13 @@ import processing.core.PGraphics;
 
 public class FingerMarker {
 	  private GuitarString myString;
-	  private int mySize = 20;
+	  private final int mySize = 20;
 	  private int myColor; 
 	  private int x, y;
 	  private GuitarView vg;
 	  private PGraphics pg;
 	  private GuitarChannel gc;
+	  // prevent tracers from being drawn over and over
 	  private boolean inUse;
 	  
 	  final static int black = 0xDF2A1F1F;
@@ -31,7 +32,7 @@ public class FingerMarker {
 	  final static int liteyellow = 0xDFF8D554; 
 	  final static int litegreen  = 0xDF9CF576;
 	  final public static int invisible  = 0x0;
-	  
+
 	  // a circle must be on the fret of a string when it is created.
 	  FingerMarker(GuitarView vg, PGraphics pg, GuitarString gs, int fret) {
 	    myString = gs;
@@ -43,7 +44,7 @@ public class FingerMarker {
 	    inUse = false;
 	  }
 	  
- 	  public void setColor(int chan) {
+ 	  private void setColor(int chan) {
  		 myColor = codeColor(chan);
  	  }
 
@@ -53,6 +54,7 @@ public class FingerMarker {
 
 	public void setChannel(GuitarChannel guitarchannel) {
 		gc = guitarchannel;
+		setColor(gc.getChannel());
 	  }
 
 		public static int codeColor(int chan) {
@@ -93,10 +95,25 @@ public class FingerMarker {
 			  return  teal;
 		}
 	  }
+		
+	// use for future change	
+/*	  PShape mark, shadow, fingermarker;
 
+	  fingermarker = createShape(GROUP);
+	  head = createShape(ELLIPSE, -25, 0, 50, 50);
+	  body = createShape(RECT, -25, 45, 50, 40);
+
+	  fingermarker.addChild(mark);
+	  fingermarker.addChild(shadow);
+
+	  // place in draw function
+	  shape(fingermarker); 
+*/
 	  // draw the notes as they are playing
 	  public void draw() {
-		// draw shadow first  
+		// draw string
+		myString.draw(vg.g, myColor);
+		// draw marker shadow 
 		vg.fill(0, 0, 0);
 	    vg.stroke(0, 0, 0);
 	    vg.ellipse(x + 3, y + 3, mySize, mySize);
@@ -106,22 +123,22 @@ public class FingerMarker {
 	    vg.ellipse(x, y, mySize, mySize);
 	  }
 	  
-	  // draw what notes have been played in the past
+	  // draw note marker that persist
 	public void drawTracer() {
 		// only draw once per use
-		if (!inUse) {
+		if (/*!inUse*/ GuitarView.getTraceTog().getValue() != 0) {
 			int _x, _y;
 			setInUse(true);
 			pg.beginDraw();
-			pg.fill(myColor);
-			pg.stroke(myColor);
+			pg.fill(myColor, 10);
+			pg.stroke(myColor, 20);
 			pg.ellipse(x, y, mySize / 2, mySize / 2);
 			// draw vector trace
-//			pg.strokeWeight(1);
-//			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
-//			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
-//			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
-//					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
+			pg.strokeWeight(1);
+			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
+			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
+			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
+					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
 			pg.endDraw();
 		}
 	}
