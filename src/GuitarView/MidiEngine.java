@@ -22,8 +22,6 @@ public class MidiEngine {
 	private static final int NOTE_ON = 1;
 	private static final int NOTE_OFF = 2;
 	private static final int NOTEON = 0x90;
-	private static final int NOTEOFF = 0x80;
-	private static final int OCTAVE = 12;
 	public File selectedfile;
 	public Sequencer sequencer;
 	public Sequence sequence;
@@ -119,44 +117,34 @@ public class MidiEngine {
 		final int channel = dat[0] & 0x0f;
 		int note = dat[1];
 		final int velocity = dat[2];
-		// if (type == NOTE_ON || type == NOTE_OFF) and the note falls on the guitar fret board
+		// if (type == NOTE_ON || type == NOTE_OFF) and the note falls on the
+		// guitar fret board
 		if ((command & 0x80) == 0x80 && note < 77 && note > 39) {
 			// only show if channel switch is on
-	    if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
-	    	    printMessage(dat);
-	    	    // offset note by number in octave number box
-	    	    //note = note + (OCTAVE * ((int)GuitarView.getOctaveRadioButton().getValue() - 2));
-                
-				List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
-                FingerMarker fm;
-				GuitarChannel guitarchannel = GuitarChannel.get(gchannels, channel);
+			if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
+				printMessage(dat);
+				GuitarChannel guitarchannel = GuitarChannel.get(gchannels,
+						channel);
 				if (command == NOTEON && velocity != 0) {
-					// pick best possible fingering position
-					int[] bestSf = guitarchannel.findClosestFingering(sf);
-					fm = GuitarView.fm[bestSf[0]][bestSf[1]];
-					fm.setChannel(guitarchannel);   
-					// set finger marker in its channel string position
-					// save sf choice so that it can be erased
-					guitarchannel.setNoteFingerings(bestSf, note);
-					guitarchannel.setStringState(bestSf[0], fm);
-				} else /* if (command == NOTEOFF || velocity == 0) */ {
-					// erase selected fingering for note
-					guitarchannel.setStringState(guitarchannel.getNoteFingerings(note)[0], null);
+					guitarchannel.noteOn(note);
+				} else /* if (command == NOTEOFF || velocity == 0) */{
+					guitarchannel.noteOff(note);
 				}
 			}
-			// printMessage(dat);
 			// update progress slider periodically
-			if (noteCount % 30 == 0){
+			if (noteCount % 30 == 0) {
 				// need to figure out why this doesn't work
-//				float percent = sequencer.getTickPosition() / sequence.getTickLength() * 100;
+				// float percent = sequencer.getTickPosition() /
+				// sequence.getTickLength() * 100;
 				GuitarView.getProgSlide().setValue(sequencer.getTickPosition());
-//				GuitarView.getProgSlide().setValueLabel(String.format("%d", percent));
-//				GuitarView.myTextarea.append(String.format("%d", percent) + "\n");
+				// GuitarView.getProgSlide().setValueLabel(String.format("%d",
+				// percent));
+				// GuitarView.myTextarea.append(String.format("%d", percent) +
+				// "\n");
 			}
 			noteCount++;
 		}
-	}
-	
+	}	
 	
 	public void loadSequenceFromFile(File selFile) {
 // create spinner here		
@@ -165,7 +153,6 @@ public class MidiEngine {
 //	    head = createShape(ELLIPSE, -25, 0, 50, 50);
 //	    body = createShape(RECT, -25, 45, 50, 40);
 
-		
 		sequencer.stop();
 		GuitarChannel.killChannels(gchannels, chanTog);
 		try {
