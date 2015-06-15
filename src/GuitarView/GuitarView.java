@@ -48,34 +48,59 @@ public class GuitarView extends PApplet {
     public static long loopTickMax, loopTickMin;     // looping end points
     public static boolean loopState = false;
     private static controlP5.RadioButton octaveRadioButton;
-	// map note numbers to string and fret position. Will change for different guitar tunings
-	// array is organized by string for a 13 fret section of the fret board.
-    
-    private final static int[] noteNumbers = { 
-			40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,	51, 52, 
-			45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57,
-			50, 51,	52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 
-			55, 56, 57, 58, 59, 60,	61, 62, 63, 64, 65, 66, 67, 
-			59, 60, 61, 62, 63, 64, 65, 66, 67, 68,	69, 70, 71, 
-			64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76 };
-    
-    private final static int[] standardTuning = { 40, 45, 50, 55, 59, 64};  // e,a,d,g,b,e 
-    
-    private static int[] notes;
+    private static MultiList tuneList;  // selects various guitar tunings
+    private static MultiListButton regular;
+    private static MultiListButton instrumental;
+    private static MultiListButton open;
+
+    // String tunings in Midi note numbers
+    // taken from: http://sethares.engr.wisc.edu/alternatetunings/alternatetunings.html
+    // regular tunings
+    private final static int[] standard =          { 40, 45, 50, 55, 59, 64};  // e a d g b e 
+    private final static int[] majorThird =        { 48, 52, 56, 60, 64, 68};  // c e g# c e g#
+    private final static int[] allFourths =        { 40, 45, 50, 55, 60, 65};  // e a d g c f 
+    private final static int[] augmentedFourths =  { 36, 42, 48, 54, 60, 66};  // c f# c f# c f# 
+    private final static int[] mandoGuitar =       { 26, 43, 50, 57, 64, 71};  // c g d a e b
+    // instrumental tunings
+    private final static int[] dobro =             { 43, 47, 50, 55, 59, 62};  // g b d g b d
+    private final static int[] overtone =          { 48, 52, 55, 58, 60, 62};  // c e g a# c d
+    private final static int[] pentatonic =        { 45, 48, 50, 52, 55, 57};  // a c d e g a
+    // open tunings
+    private final static int[] openC =             { 36, 43, 48, 55, 60, 64};  // c g c g c e
+    private final static int[] openD =             { 38, 45, 50, 54, 57, 62};  // d a d f# a d
+    private final static int[] openG =             { 38, 43, 50, 55, 59, 62};  // d g d g b d
+    private final static int[] openDMinor =        { 38, 45, 50, 53, 57, 62};  // d a d f a d 
+    private final static int[] openA =             { 40, 45, 49, 52, 57, 64};  // e a c# e a e
+
+ //   private static int[] Tuning;       // open tuning of the six strings
+    private static int[] noteNumbers;  // fret board mapping
     
 	private final static String[] noteNames = { "C ", "C#", "D ", "D#", "E ", "F ", "F#",
 		"G ", "G#", "A ", "A#", "B " };
 	
 	private static String filename = " ";
 	
-	private void initNotes() {
-		notes = new int[NUM_STRINGS * NUM_FRETS];
+	// set up the open string tuning
+//	private void setTuning(int[] t) {
+//		Tuning = new int[NUM_STRINGS];
+//		for (int s = 0; s < NUM_STRINGS; s++) {
+//		  Tuning[s] = t[s];
+//		}
+//	}
+	
+	// set up fret board note mapping
+	private void initNotes(int[] t) {
+//		Tuning = new int[NUM_STRINGS];
+//		for (int s = 0; s < NUM_STRINGS; s++) {
+//		  Tuning[s] = t[s];
+//		}
+		noteNumbers = new int[NUM_STRINGS * NUM_FRETS];
         int i = 0;
         int n = 0;
 		for (int s = 0; s < NUM_STRINGS; s++) {
-            n = standardTuning[s];
+            n = t[s];
 			for (int f = 0; f < NUM_FRETS; f++) {
-                notes[i++] = n++;
+                noteNumbers[i++] = n++;
 			}
 		}
 	}
@@ -116,6 +141,7 @@ public class GuitarView extends PApplet {
 		return finger;
 	}
 
+	// create a cache of pre made finger markers
 	private void initFingerMarkers() {
 		for (int s = 0; s < NUM_STRINGS; s++) {
 			for (int f = 0; f < NUM_FRETS; f++) {
@@ -208,7 +234,7 @@ public class GuitarView extends PApplet {
 		guitarImage.endDraw();
 	}
 
-	@SuppressWarnings("deprecation")
+
 	public void setup() {
 		size(1200, 600, P2D);
 //		 size(displayWidth, displayHeight, P2D);
@@ -216,9 +242,11 @@ public class GuitarView extends PApplet {
 		    frame.setResizable(true);
 		  }	
 		background(200,50);
+
+		initNotes(standard);
+		
 		guitarImage = createGraphics(width, height, P2D);
 		img = loadImage("woodgrain3.jpg");
-		
 		
 		guitarX = height / 20;
 		guitarY = height / 2 + 20;
@@ -237,30 +265,34 @@ public class GuitarView extends PApplet {
 		strings[5] = new GuitarString(this,  guitarY + inc);
 		
 	    me = new MidiEngine();
+		drawGuitar(); // setup guitar image in buffer
+		initFingerMarkers();
+		configureUI();
+		frameRate(20);
+	}
 
+	/**
+	 * 
+	 */
+	private void configureUI() {
 		cp5 = new ControlP5(this);
 		 
-	    cp5.setColorLabel(0xFF000000);
+	    cp5.setColorCaptionLabel(0xFF000000);
 	    
-	    pfont = createFont("Arial",13,true); // use true/false for smooth/no-smooth
+	    pfont = createFont("Arial",13,true); 
 	    font = new ControlFont(pfont);
 	    
 	    ControlFont.sharp();
 	    
-		cp5.addButton("load_file")
+	    configFont(cp5.addButton("load_file")
 		.setPosition(dX, dY)
-		.setSize(55, 20)
-        .setColorCaptionLabel(0xffffffff)
-        .getCaptionLabel()
-        .setFont(font)
-        .toUpperCase(false)
-        .setSize(13)
+		.setSize(55, 20))
         ;
 		
 		cp5.addTextlabel("labelvisual")
                   .setText("visual display controls")
                   .setPosition(dX,2 * dY)
-                  .setColorValue(copper)
+                  .setColorValueLabel(copper)
                   .setFont(createFont("arial",18))
                   ;
 		
@@ -268,42 +300,29 @@ public class GuitarView extends PApplet {
  				.setPosition(dX, 3 * dY)
 				.setSize(35, 20).setValue(false)
 			    ;
- 		traceTog.getCaptionLabel()
-          .setFont(font)
-          .toUpperCase(false)
-          .setSize(13);
+ 		configFont(traceTog);
  		
-		 cp5.addButton("all")
+ 		configFont(cp5.addButton("all")
 		   .setPosition(2 * dX, 3 * dY)
-		   .setSize(35, 20)
-           .setColorCaptionLabel(0xffffffff)
-            .getCaptionLabel()
-           .setFont(font)
-           .toUpperCase(false)
-           .setSize(13);
+		   .setSize(35, 20))
           ;
 		 
-         cp5.addButton("none")
+ 		configFont(cp5.addButton("none")
            .setPosition(3 * dX, 3 * dY)
-           .setSize(35, 20)
-           .setColorCaptionLabel(0xffffffff)
-           .getCaptionLabel()
-           .setFont(font)
-           .toUpperCase(false)
-           .setSize(13);
+           .setSize(35, 20))
            ;
 		
  		cp5.addTextlabel("labelplay")
         .setText("play controls")
         .setPosition(dX, 4 * dY)
-        .setColorValue(copper)
+        .setColorValueLabel(copper)
         .setFont(createFont("arial",18))
         ;
  		
  		cp5.addTextlabel("labelauthor")
         .setText("v0.01 R. Sampson 2015")
         .setPosition(25 * dX + 1, 26)
-        .setColorValue(copper)
+        .setColorValueLabel(copper)
         .setFont(createFont("arial",11))
         ;
 		
@@ -318,43 +337,24 @@ public class GuitarView extends PApplet {
         .setSize(13)
         ;
 		
-		cp5.addButton("reset").setPosition(7 * dX, 5 * dY)
-		  .setSize(35, 20)
-		  .setColorCaptionLabel(0xffffffff)
-           .getCaptionLabel()
-           .setFont(font)
-           .toUpperCase(false)
-           .setSize(13);
+ 		configFont(cp5.addButton("reset")
+ 		  .setPosition(7 * dX, 5 * dY)
+		  .setSize(35, 20))
 		  ;
 		
-		cp5.addButton("fwd")
+ 		configFont(cp5.addButton("fwd")
 		  .setPosition(8 * dX, 5 * dY)
-		  .setSize(35, 20)
-          .setColorCaptionLabel(0xffffffff)
-          .getCaptionLabel()
-          .setFont(font)
-          .toUpperCase(false)
-          .setSize(13);
+		  .setSize(35, 20))
          ;
 		
-		cp5.addButton("rev")
+ 		configFont(cp5.addButton("rev")
 		  .setPosition(9 * dX, 5 * dY)
-		  .setSize(35, 20)
-          .setColorCaptionLabel(0xffffffff)
-           .getCaptionLabel()
-           .setFont(font)
-           .toUpperCase(false)
-           .setSize(13);
-           ;
+		  .setSize(35, 20))
+          ;
 		
-		cp5.addButton("Loop")
+          configFont(cp5.addButton("Loop")
 		  .setPosition(10 * dX, 5 * dY)
-		  .setSize(35, 20)
-          .setColorCaptionLabel(0xffffffff)
-          .getCaptionLabel()
-          .setFont(font)
-          .toUpperCase(false)
-          .setSize(13);
+		  .setSize(35, 20))
           ;
 		 
 	    cp5.addSlider("tempo")
@@ -391,27 +391,36 @@ public class GuitarView extends PApplet {
                       .setColorForeground(color(255,100))
                       ;
 
-      
-        
-        // change the font and content of the captionlabels 
-        // for both buttons create earlier.
-//        cp5.getController("load_file")
-//           .getCaptionLabel()
-//           .setFont(font)
-//           .toUpperCase(false)
-//           .setSize(24)
-//           ;  
-//	    octaveRadioButton = cp5.addRadioButton("octave")
-//	            .setPosition(dX, 4 * dY)
-//	            .setSize(35,20)
-//	            .setItemsPerRow(3)
-//	            .setSpacingColumn(20)
-//	            .addItem("-",-1)
-//	            .addItem("0",0)
-//	            .addItem("+",1)
-//	            .activate(1)
-//	            ;
 
+          // add list of tuning selections
+          tuneList = cp5.addMultiList("tunings",width / 2 + 8 * dX,2 * dY,130, 25);
+          
+          regular = tuneList.add("regular_tunings",1);
+          configFont(regular);
+
+          instrumental = tuneList.add("instrumental_tunings",2);
+          configFont(instrumental);
+
+          open = tuneList.add("open_tunings",3);
+          configFont(open);  
+          
+          configFont(regular.add("Standard",11).setCaptionLabel("Standard Tuning"));
+          configFont(regular.add("MajorThird",12).setCaptionLabel("Major Third"));
+          configFont(regular.add("AllFourths",13).setCaptionLabel("All Fourths"));
+          configFont(regular.add("AugmentedFourths",14).setCaptionLabel("Augmented Fourths"));
+          configFont(regular.add("MandoGuitar",15).setCaptionLabel("Mando Guitar"));
+
+          configFont(instrumental.add("Dobro",21).setCaptionLabel("Dobro Tuning"));
+          configFont(instrumental.add("Overtone",22).setCaptionLabel("Overtone Tuning"));
+          configFont(instrumental.add("Pentatonic",23).setCaptionLabel("Pentatonic Tuning"));
+          
+          configFont(open.add("OpenA",35).setCaptionLabel("Open A"));
+          configFont(open.add("OpenC",31).setCaptionLabel("Open C"));
+          configFont(open.add("OpenD",32).setCaptionLabel("Open D"));
+          configFont(open.add("OpenDMinor",33).setCaptionLabel("Open D Minor"));
+          configFont(open.add("OpenG",34).setCaptionLabel("Open G"));
+
+          
 	    cp5.getTooltip().register("load_file","Browse midi files to play");
 	    cp5.getTooltip().register("all","Enable display of all channels (voices)");
 	    cp5.getTooltip().register("none","Supress display off all channels");
@@ -423,15 +432,84 @@ public class GuitarView extends PApplet {
 	    cp5.getTooltip().register("tempo","Slide with mouse to change tempo");
 	    cp5.getTooltip().register("reset","Play music from te begining");
 	    cp5.getTooltip().register("trace","Turn on visual indication of which notes have been played");
+	    cp5.getTooltip().register("tunings","Configure special guitar tunings");
 	    
-		cp5.loadProperties(("properties"));
-        myTextarea.clear();
+		//cp5.loadProperties(("properties"));
+	    myTextarea.clear();
+	}
 
-		drawGuitar(); // setup guitar image in buffer
-		initNotes();
-		initFingerMarkers();
-		
-		frameRate(20);
+	@SuppressWarnings("rawtypes")
+	private void configFont(controlP5.Controller cc) {
+		cc.getCaptionLabel()
+          .setFont(font)
+          .toUpperCase(false)
+          .setSize(13).setColor(0xffffffff);
+	}
+	
+	// handle gui events
+	public void controlEvent(ControlEvent theEvent) {
+		if (theEvent.isController()) {
+
+			print("control event from : " + theEvent.getName());
+
+			switch (theEvent.getName()) {
+
+			case "Standard":
+				initNotes(standard);
+				clearFretboard();
+				break;
+			case "MajorThird":
+				initNotes(majorThird);
+				clearFretboard();
+				break;
+			case "AllFourths":
+				initNotes(allFourths);
+				clearFretboard();
+				break;
+			case "AugmentedFourths":
+				initNotes(augmentedFourths);
+				clearFretboard();
+				break;
+			case "MandoGuitar":
+				initNotes(mandoGuitar);
+				clearFretboard();
+				break;
+				
+			case "Dobro":
+				initNotes(dobro);
+				clearFretboard();
+				break;
+			case "Overtone":
+				initNotes(overtone);
+				clearFretboard();
+				break;
+			case "Pentatonic":
+				initNotes(pentatonic);
+				clearFretboard();
+				break;
+				
+			case "OpenC":
+				initNotes(openC);
+				clearFretboard();
+				break;
+			case "OpenD":
+				initNotes(openD);
+				clearFretboard();
+				break;
+			case "OpenG":
+				initNotes(openG);
+				clearFretboard();
+				break;
+			case "OpenDMinor":
+				initNotes(openDMinor);
+				clearFretboard();
+				break;
+			case "OpenA":
+				initNotes(openA);
+				clearFretboard();
+				break;
+			}
+		}
 	}
 	
 	public static Slider getProgSlide() {
@@ -572,8 +650,7 @@ public class GuitarView extends PApplet {
 				guitarImage.endDraw();
 			}
 		}
-		// test this after tracers are re-enabled
-		//clearTracers();
+		clearTracers();
 	}
 	
 	@SuppressWarnings("unused")
@@ -613,7 +690,10 @@ public class GuitarView extends PApplet {
 		PApplet.main(new String[] { GuitarView.class.getName() });
 		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
 			public void run() {
-				cp5.saveProperties(("properties"));
+//				GuitarChannel.killChannels(MidiEngine.gchannels, MidiEngine.chanTog);
+//				// call garbage collector to purge channel properties
+//				System.gc();
+//				cp5.saveProperties(("properties"));
 			}
 		}, "Shutdown-thread"));
 	}
