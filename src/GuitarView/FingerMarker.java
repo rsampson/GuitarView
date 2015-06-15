@@ -126,7 +126,7 @@ public class FingerMarker {
 	  // draw note marker that persist
 	public void drawTracer() {
 		// only draw once per use
-		if (/*!inUse*/ GuitarView.getTraceTog().getValue() != 0) {
+		if (!inUse && GuitarView.getTraceTog().getValue() != 0) {
 			int _x, _y;
 			setInUse(true);
 			pg.beginDraw();
