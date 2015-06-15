@@ -20,8 +20,10 @@ public class GuitarChannel {
 		channel = chan;
 		lastFretPlayed = 7; // initialize fret and string near enter of neck
 		lastStringPlayed = 3;
+		// contains active finger marker for each of the six strings
 		stringStates = new CopyOnWriteArrayList<FingerMarker>();
-		noteFingerings = new int[GuitarView.NUM_STRINGS * GuitarView.NUM_STRINGS][2];
+		// record of how each note is currently being fingered for this channel
+		noteFingerings = new int[GuitarView.NUM_STRINGS * GuitarView.NUM_FRETS][2];
 		
 		for (int s = 0; s < GuitarView.NUM_STRINGS; s++) {
 		   	  stringStates.add(null);
@@ -41,12 +43,14 @@ public class GuitarChannel {
 		    }
 	}
 	
-	public int[] getNoteFingerings(int note) {
+	private int[] getNoteFingerings(int note) {
 		return noteFingerings[note - 40];
 	}
 
-	public void setNoteFingerings(int[] noteFingerings, int note) {
-		this.noteFingerings[note - 40] = noteFingerings;
+	private void setNoteFingerings(int[] noteFingerings, int note) {
+		if ((note - 40) < this.noteFingerings.length) {
+		  this.noteFingerings[note - 40] = noteFingerings;
+		}
 	}
     
 	// channel destructor
@@ -63,10 +67,7 @@ public class GuitarChannel {
 	public List<FingerMarker> getStringStates() {
 		return stringStates;
 	}
-    public void setStringState(int s, FingerMarker fm) {
-	   getStringStates().set(s, fm);
-    }
-    
+	
 	public static boolean isChannelEnabled(List<controlP5.Toggle> parent, int channel) {
 	  return parent.get(channels.indexOf(channel)).getState() == true;
 	}
@@ -75,10 +76,6 @@ public class GuitarChannel {
 	  return !channels.contains(chan);
 	}
 	
-    public static int getChans() {
-		return chans;
-	}
-    
 	public int getChannel() {
 		return channel;
 	}
@@ -87,23 +84,19 @@ public class GuitarChannel {
 		return lastFretPlayed;
 	}
 	
-	public void setLastFretPlayed(int lastFretPlayed) {
-		this.lastFretPlayed = lastFretPlayed;
-	}
-
 	public int getLastStringPlayed() {
 		return lastStringPlayed;
 	}
 
-	public void setLastStringPlayed(int lastStringPlayed) {
-		this.lastStringPlayed = lastStringPlayed;
-	}
-
-	public static int getIndexOfChannel(int channel) {
-	  return channels.indexOf(channel);
+//	private static int getIndexOfChannel(int channel) {
+//	  return channels.indexOf(channel);
+//	}
+	
+	public static GuitarChannel get(List<GuitarChannel> chans, int channel) {
+		return chans.get(channels.indexOf(channel));
 	}
 	
-	public int[] findClosestFingering(List<Integer> sf) {
+	private int[] findClosestFingering(List<Integer> sf) {
 		int[] result = {0,0};
 		float length = 0;
 		float shortestLength = 9999999;
@@ -136,9 +129,31 @@ public class GuitarChannel {
 		return result;
 	}
 	
-	public static GuitarChannel get(List<GuitarChannel> channels, int channel) {
-		return channels.get(getIndexOfChannel(channel));
+	// remove note from channel as it is no longer played
+	public void noteOff(int note) {
+		// erase selected fingering for note
+		FingerMarker fm;
+		// first need to clear inuse as marker is no longer in use
+		fm = stringStates.get(getNoteFingerings(note)[0]);
+		fm.setInUse(false);
+		// now null out finger marker used to finger the note
+		stringStates.set(getNoteFingerings(note)[0], null);
 	}
+	
+	// add note to channel so it will be played
+	public void noteOn(int note) {
+		// pick best possible fingering position
+		FingerMarker fm;
+		List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
+		int[] bestSf = findClosestFingering(sf);
+		fm = GuitarView.fm[bestSf[0]][bestSf[1]];
+		fm.setChannel(this);
+		// set finger marker in its channel string position
+		// save sf choice so that it can be erased
+		setNoteFingerings(bestSf, note);
+		stringStates.set(bestSf[0], fm);
+	}
+
 } 
 	
 
