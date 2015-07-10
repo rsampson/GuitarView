@@ -28,8 +28,7 @@ public class GuitarChannel {
 		for (int s = 0; s < GuitarView.NUM_STRINGS; s++) {
 		   	  stringStates.add(null);
 		    }
-        
-        togl.add( GuitarView.cp5.addToggle("chan" + chan)
+        togl.add( GuitarView.cp5.addToggle("chan" + chan) 
 				.setPosition((5 + chans) * GuitarView.dX, 3 * GuitarView.dY)
 				.setSize(20, 20)
 				.setValue(true)
@@ -88,10 +87,6 @@ public class GuitarChannel {
 		return lastStringPlayed;
 	}
 
-//	private static int getIndexOfChannel(int channel) {
-//	  return channels.indexOf(channel);
-//	}
-	
 	public static GuitarChannel get(List<GuitarChannel> chans, int channel) {
 		return chans.get(channels.indexOf(channel));
 	}
@@ -100,44 +95,41 @@ public class GuitarChannel {
 		int[] result = {0,0};
 		float length = 0;
 		float shortestLength = 9999999;
-		//int lastFret = 0;
+		
 		//GuitarView.myTextarea.append(String.format(" lst fret %d \n", lastFretPlayed), 12);
 
 		// for each fingering pair in sf
 		for (int i = 0; i < sf.size() / 2; i = i + 2) {
 			// "length" is not a measure in cartesian space, but a measure of difficulty in
-			// reaching a note from another position, try the following formula.
-			//length = 2 * (sf.get(i + 1) - lastFretPlayed)  + sf.get(i) - lastStringPlayed;
-			length = PApplet.abs(sf.get(i + 1) - (6 + lastFretPlayed) / 2);
-			if (length < shortestLength || sf.get(i + 1) == 0) {
+			// reaching a note from another position. for now try the simple formula:
+			//length = current fret - last Fret Played) 
+			length = PApplet.abs(sf.get(i + 1) - lastFretPlayed);
+			if (length < shortestLength) {
 				shortestLength = length;
 				result[0] = sf.get(i);
 				result[1] = sf.get(i + 1);
-				//lastFret = sf.get(i + 1);
 			}
-			// you can't do better than an open string, quit if you find one
-			//if (lastFret == 0) break;
 		}
 		// the last string and fret have some "memory" as to where they were in the past
 		// this will mess up vectoring. Don't remember open strings
 		//if (lastFret != 0) {
-//			lastStringPlayed = (result[0] + lastStringPlayed) / 2;
-//			lastFretPlayed = (result[1] + lastFretPlayed) / 2;
+		lastFretPlayed = (result[1] + lastFretPlayed) / 2;
 		lastStringPlayed = result[0];
-		lastFretPlayed = result[1];
-		//}
+//		lastFretPlayed = result[1];
 		return result;
 	}
 	
 	// remove note from channel as it is no longer played
 	public void noteOff(int note) {
-		// erase selected fingering for note
-		FingerMarker fm;
-		// first need to clear inuse as marker is no longer in use
-		fm = stringStates.get(getNoteFingerings(note)[0]);
-		fm.setInUse(false);
-		// now null out finger marker used to finger the note
-		stringStates.set(getNoteFingerings(note)[0], null);
+		if ((note - 40) < this.noteFingerings.length) {
+			// erase selected fingering for note
+			FingerMarker fm;
+			// first need to clear inuse as marker is no longer in use
+			fm = stringStates.get(getNoteFingerings(note)[0]);
+			fm.setInUse(false);
+			// now null out finger marker used to finger the note
+			stringStates.set(getNoteFingerings(note)[0], null);
+		}
 	}
 	
 	// add note to channel so it will be played
@@ -145,13 +137,16 @@ public class GuitarChannel {
 		// pick best possible fingering position
 		FingerMarker fm;
 		List<Integer> sf = GuitarView.noteToStringFrets((byte) note);
-		int[] bestSf = findClosestFingering(sf);
-		fm = GuitarView.fm[bestSf[0]][bestSf[1]];
-		fm.setChannel(this);
-		// set finger marker in its channel string position
-		// save sf choice so that it can be erased
-		setNoteFingerings(bestSf, note);
-		stringStates.set(bestSf[0], fm);
+		// add note if it is on the visible part of the keyboard
+		if (sf.size() > 0) {
+			int[] bestSf = findClosestFingering(sf);
+			fm = GuitarView.fm[bestSf[0]][bestSf[1]];
+			fm.setChannel(this);
+			// set finger marker in its channel string position
+			// save sf choice so that it can be erased
+			setNoteFingerings(bestSf, note);
+			stringStates.set(bestSf[0], fm);
+		}
 	}
 
 } 

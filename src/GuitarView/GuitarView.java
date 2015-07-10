@@ -1,12 +1,16 @@
 package GuitarView;
 
-/* Used guitar draw algorithm from OpenProcessing *@*http://www.openprocessing.org/sketch/42730*@* */
- 
+/* Used some of the guitar drawing algorithm from :
+"Play Guitar" by Karl Hiner, licensed under Creative Commons Attribution-Share Alike 3.0 and GNU GPL license.
+Work: http://openprocessing.org/visuals/?visualID= 42730
+License:
+http://creativecommons.org/licenses/by-sa/3.0/
+http://creativecommons.org/licenses/GPL/2.0/
+*/
+
 import processing.core.PApplet;
 import processing.core.PFont;
-//import processing.core.PFont;
 import processing.core.PGraphics;
-import processing.core.PImage;
 import processing.core.PConstants;
 import java.io.File;
 import controlP5.*;
@@ -28,11 +32,11 @@ public class GuitarView extends PApplet {
 	public static int dX, dY; // grid to put controls on
 
 	public final int copper = color(100, 80, 30); 
-	public final int brass = color(181, 166, 66); 
-	private final int ivory = color(0xFFEEEBB0);
+	public final int brass = color(220, 200, 150); 
+	private final int darkbrass = color(100, 90, 60); 
+	private final int wood = color(83, 31, 1);
 	
 	private  static PGraphics guitarImage; // for keeping the drawn image of the guitar.
-	private PImage img;
     private MidiEngine me;
 	private static Slider progSlide;
     public static FingerMarker[][] fm = new FingerMarker[NUM_STRINGS][NUM_FRETS];  //pre-made markers for each string  and fret
@@ -41,13 +45,13 @@ public class GuitarView extends PApplet {
     private ControlFont font;
 
     public static ControlP5 cp5;
-    //private static controlP5.Toggle[] tracTog;  // track filter switches
-    private static Toggle   traceTog; // enable/disable tracing
+     private static Toggle   traceTog; // enable/disable tracing
     private static Toggle   pauseTog;  
+    private static Textlabel tuningLabel;
     public static Textarea myTextarea;
     public static long loopTickMax, loopTickMin;     // looping end points
     public static boolean loopState = false;
-    private static controlP5.RadioButton octaveRadioButton;
+    //private static controlP5.RadioButton octaveRadioButton;
     private static MultiList tuneList;  // selects various guitar tunings
     private static MultiListButton regular;
     private static MultiListButton instrumental;
@@ -72,7 +76,6 @@ public class GuitarView extends PApplet {
     private final static int[] openDMinor =        { 38, 45, 50, 53, 57, 62};  // d a d f a d 
     private final static int[] openA =             { 40, 45, 49, 52, 57, 64};  // e a c# e a e
 
- //   private static int[] Tuning;       // open tuning of the six strings
     private static int[] noteNumbers;  // fret board mapping
     
 	private final static String[] noteNames = { "C ", "C#", "D ", "D#", "E ", "F ", "F#",
@@ -80,20 +83,11 @@ public class GuitarView extends PApplet {
 	
 	private static String filename = " ";
 	
-	// set up the open string tuning
-//	private void setTuning(int[] t) {
-//		Tuning = new int[NUM_STRINGS];
-//		for (int s = 0; s < NUM_STRINGS; s++) {
-//		  Tuning[s] = t[s];
-//		}
-//	}
+	private static boolean loadFlag = false;
 	
+
 	// set up fret board note mapping
 	private void initNotes(int[] t) {
-//		Tuning = new int[NUM_STRINGS];
-//		for (int s = 0; s < NUM_STRINGS; s++) {
-//		  Tuning[s] = t[s];
-//		}
 		noteNumbers = new int[NUM_STRINGS * NUM_FRETS];
         int i = 0;
         int n = 0;
@@ -107,14 +101,17 @@ public class GuitarView extends PApplet {
 	
 	// return the note name produced by string s and fret f
 	public static String getNoteName(int note) {
-		return noteNames[note % 12] + ((note / 12) - 1);
-	//	return String.valueOf(noteNumbers[note]);
+		return noteNames[note % 12];
+	}
+	
+	// return the note name produced by string s and fret f
+	public static String getNoteNameWithOctave(int note) {
+		return noteNames[note % 12] + "  " + ((note / 12) - 1);
 	}
 
 	// return the note name produced by string s and fret f
 	private static String getNoteString(int s, int f) {
 		return  getNoteName(noteNumbers[(s * NUM_FRETS) + f]);
-	//	return String.valueOf(noteNumbers[(s * NUM_FRETS) + f]);
 	}
 
 	// print the note produced by string s and fret f at location x y
@@ -163,10 +160,6 @@ public class GuitarView extends PApplet {
 		return traceTog;
 	}
 
-	public static controlP5.RadioButton getOctaveRadioButton() {
-		return octaveRadioButton;
-	}
-
 	private void drawGuitar() {
 		// figure out where the frets should go
 		float d = (float) (1.47 * width / fretLines.length);
@@ -177,16 +170,15 @@ public class GuitarView extends PApplet {
 		guitarImage.beginDraw();
 		// draw fret board
 		guitarImage.noStroke();
+		guitarImage.fill(wood);
 		guitarImage.beginShape();
-		guitarImage.textureMode(PConstants.NORMAL);
-		guitarImage.texture(img);
-		guitarImage.vertex(guitarX, guitarY, 0, 0);
-		guitarImage.vertex(width, guitarY, 1, 0);
-		guitarImage.vertex(width, guitarY + guitarH, 1, 1);
-		guitarImage.vertex(guitarX, guitarY + guitarH, 0, 1);
+		
+		guitarImage.vertex(guitarX, guitarY);
+		guitarImage.vertex(width, guitarY);
+		guitarImage.vertex(width, guitarY + guitarH);
+		guitarImage.vertex(guitarX, guitarY + guitarH);
 		guitarImage.endShape(PConstants.CLOSE);
         // erase background left of neck
-		guitarImage.fill(ivory);
 		guitarImage.beginShape();
 		guitarImage.vertex(0, guitarY);
 		guitarImage.vertex(guitarX, guitarY);
@@ -199,8 +191,8 @@ public class GuitarView extends PApplet {
 			guitarImage.strokeWeight(6);
 
 			// draw fret shadows
-			guitarImage.stroke(18, 16, 6);
-			guitarImage.fill(18, 16, 6);
+			guitarImage.stroke(darkbrass);
+			guitarImage.fill(darkbrass);
 			guitarImage.line(fretLines[i] + 4, guitarY, fretLines[i] + 4, guitarY
 					+ guitarH);
 			// then draw frets
@@ -211,7 +203,7 @@ public class GuitarView extends PApplet {
 			// draw note names
 			guitarImage.fill(255, 255, 127, 100);
 			for (int s = 0; s < NUM_STRINGS; s++) {
-				printNote(s, i, fretLines[i] - 26, strings[s].getY() - 5); 
+				printNote(s, i, fretLines[i] - 21, strings[s].getY() - 5); 
 			}
 			// draw markers
 			guitarImage.fill(0, 0, 0);
@@ -230,23 +222,21 @@ public class GuitarView extends PApplet {
 		for (GuitarString s : strings) {
 			s.draw(guitarImage, copper);
 		}
-		image(guitarImage, 0, 0); // render guitar image from buffer
 		guitarImage.endDraw();
 	}
 
 
 	public void setup() {
-		size(1200, 600, P2D);
+		size(1200, 600, PConstants.JAVA2D);
 //		 size(displayWidth, displayHeight, P2D);
 		 if (frame != null) {
 		    frame.setResizable(true);
 		  }	
 		background(200,50);
-
+		smooth();
 		initNotes(standard);
 		
-		guitarImage = createGraphics(width, height, P2D);
-		img = loadImage("woodgrain3.jpg");
+		guitarImage = createGraphics(width, height);
 		
 		guitarX = height / 20;
 		guitarY = height / 2 + 20;
@@ -271,12 +261,11 @@ public class GuitarView extends PApplet {
 		frameRate(20);
 	}
 
-	/**
-	 * 
-	 */
 	private void configureUI() {
 		cp5 = new ControlP5(this);
-		 
+		
+		cp5.setAutoDraw(false);    // control drawing manually to avoid concurrency issues 
+
 	    cp5.setColorCaptionLabel(0xFF000000);
 	    
 	    pfont = createFont("Arial",13,true); 
@@ -289,12 +278,6 @@ public class GuitarView extends PApplet {
 		.setSize(55, 20))
         ;
 		
-		cp5.addTextlabel("labelvisual")
-                  .setText("visual display controls")
-                  .setPosition(dX,2 * dY)
-                  .setColorValueLabel(copper)
-                  .setFont(createFont("arial",18))
-                  ;
 		
  		traceTog = cp5.addToggle("trace")
  				.setPosition(dX, 3 * dY)
@@ -311,17 +294,31 @@ public class GuitarView extends PApplet {
            .setPosition(3 * dX, 3 * dY)
            .setSize(35, 20))
            ;
+ 		
+		cp5.addTextlabel("labelvisual")
+        .setText("visual display controls")
+        .setPosition(dX,2 * dY + 8)
+        .setColorValueLabel(copper)
+        .setFont(createFont("arial",18))
+        ;
 		
  		cp5.addTextlabel("labelplay")
         .setText("play controls")
-        .setPosition(dX, 4 * dY)
+        .setPosition(dX, 4 * dY + 8)
+        .setColorValueLabel(copper)
+        .setFont(createFont("arial",18))
+        ;
+ 		
+ 		tuningLabel = cp5.addTextlabel("labeltuning")
+        .setText("tuning controls")
+        .setPosition(width / 2 + 8 * dX, dY + 8)
         .setColorValueLabel(copper)
         .setFont(createFont("arial",18))
         ;
  		
  		cp5.addTextlabel("labelauthor")
         .setText("v0.01 R. Sampson 2015")
-        .setPosition(25 * dX + 1, 26)
+        .setPosition(26 * dX + 1, 10)
         .setColorValueLabel(copper)
         .setFont(createFont("arial",11))
         ;
@@ -331,29 +328,16 @@ public class GuitarView extends PApplet {
 				.setSize(35, 20)
 				.setValue(false)
 				;
- 		pauseTog.getCaptionLabel()
-        .setFont(font)
-        .toUpperCase(false)
-        .setSize(13)
-        ;
+		
+		configFont(pauseTog);
 		
  		configFont(cp5.addButton("reset")
  		  .setPosition(7 * dX, 5 * dY)
 		  .setSize(35, 20))
 		  ;
 		
- 		configFont(cp5.addButton("fwd")
-		  .setPosition(8 * dX, 5 * dY)
-		  .setSize(35, 20))
-         ;
-		
- 		configFont(cp5.addButton("rev")
-		  .setPosition(9 * dX, 5 * dY)
-		  .setSize(35, 20))
-          ;
-		
           configFont(cp5.addButton("Loop")
-		  .setPosition(10 * dX, 5 * dY)
+		  .setPosition(8 * dX, 5 * dY)
 		  .setSize(35, 20))
           ;
 		 
@@ -371,7 +355,7 @@ public class GuitarView extends PApplet {
 	    progSlide = cp5.addSlider("progress")
           .setRange((float)0,(float)0)
           .setValue((float)0)
-          .setPosition(11 * dX, 5 * dY)
+          .setPosition(9 * dX, 5 * dY)
           .setSize(150, 20)
           .setDecimalPrecision(0)
           ;
@@ -384,7 +368,7 @@ public class GuitarView extends PApplet {
         myTextarea = cp5.addTextarea("txt")
                       .setPosition(width / 2 + 2 * dX,2 * dY)
                       .setSize(200,200)
-                      .setFont(createFont("arial",14))
+                      .setFont(createFont("arial",20))
                       .setLineHeight(16)
                       .setColor(color(128))
                       .setColorBackground(color(255,100))
@@ -425,16 +409,12 @@ public class GuitarView extends PApplet {
 	    cp5.getTooltip().register("all","Enable display of all channels (voices)");
 	    cp5.getTooltip().register("none","Supress display off all channels");
 	    cp5.getTooltip().register("pause","Pause music play");
-	    cp5.getTooltip().register("fwd","bump play position forward in time");
-	    cp5.getTooltip().register("rev","bump play position backwards in time");
 	    cp5.getTooltip().register("Loop","loop play between the last two pause points");
 	    cp5.getTooltip().register("progress","Slide with mouse to change play position");
 	    cp5.getTooltip().register("tempo","Slide with mouse to change tempo");
 	    cp5.getTooltip().register("reset","Play music from te begining");
 	    cp5.getTooltip().register("trace","Turn on visual indication of which notes have been played");
 	    cp5.getTooltip().register("tunings","Configure special guitar tunings");
-	    
-		//cp5.loadProperties(("properties"));
 	    myTextarea.clear();
 	}
 
@@ -450,62 +430,75 @@ public class GuitarView extends PApplet {
 	public void controlEvent(ControlEvent theEvent) {
 		if (theEvent.isController()) {
 
-			print("control event from : " + theEvent.getName());
-
+			print("control event from : " + theEvent.getName() + " \n");
+			
 			switch (theEvent.getName()) {
 
 			case "Standard":
 				initNotes(standard);
+				tuningLabel.setText("Standard");
 				clearFretboard();
 				break;
 			case "MajorThird":
 				initNotes(majorThird);
+				tuningLabel.setText("MajorThird");
 				clearFretboard();
 				break;
 			case "AllFourths":
 				initNotes(allFourths);
+				tuningLabel.setText("AllFourths");
 				clearFretboard();
 				break;
 			case "AugmentedFourths":
 				initNotes(augmentedFourths);
+				tuningLabel.setText("AugmentedFourths");
 				clearFretboard();
 				break;
 			case "MandoGuitar":
 				initNotes(mandoGuitar);
+				tuningLabel.setText("MandoGuitar");
 				clearFretboard();
 				break;
 				
 			case "Dobro":
 				initNotes(dobro);
+				tuningLabel.setText("Dobro");
 				clearFretboard();
 				break;
 			case "Overtone":
 				initNotes(overtone);
+				tuningLabel.setText("Overtone");
 				clearFretboard();
 				break;
 			case "Pentatonic":
 				initNotes(pentatonic);
+				tuningLabel.setText("Pentatonic");
 				clearFretboard();
 				break;
 				
 			case "OpenC":
 				initNotes(openC);
+				tuningLabel.setText("OpenC");
 				clearFretboard();
 				break;
 			case "OpenD":
 				initNotes(openD);
+				tuningLabel.setText("OpenD");
 				clearFretboard();
 				break;
 			case "OpenG":
 				initNotes(openG);
+				tuningLabel.setText("OpenG");
 				clearFretboard();
 				break;
 			case "OpenDMinor":
 				initNotes(openDMinor);
+				tuningLabel.setText("OpenDMinor");
 				clearFretboard();
 				break;
 			case "OpenA":
 				initNotes(openA);
+				tuningLabel.setText("OpenA");
 				clearFretboard();
 				break;
 			}
@@ -517,16 +510,20 @@ public class GuitarView extends PApplet {
 	}
 
 	public void fileSelected(File selection) {
-		  if (selection == null) {
-		    println("Window was closed or the user hit cancel.");
-		  } 
-		  else {
-			filename = selection.getAbsolutePath();  
-		    println("User selected " + filename);
-		    this.reset();
-		    me.loadSequenceFromFile( selection);
-		  }	
-		  clearFretboard();
+		if (selection == null) {
+			println("Window was closed or the user hit cancel.");
+		} else {
+			filename = selection.getAbsolutePath();
+			println("User selected " + filename);
+			this.reset();
+			fill(copper);
+			textSize(16);
+			text("loading, please wait...", dX, 7 * dY);
+			loadFlag = true;
+			me.loadSequenceFromFile(selection);
+			loadFlag = false;
+		}
+		clearFretboard();
 	}
 
 	@SuppressWarnings("unused")
@@ -550,16 +547,14 @@ public class GuitarView extends PApplet {
 	@SuppressWarnings("unused")
 	private void pause(boolean theValue) { // start and stop sequencer with
 		// save pause points for looping
-		Sequencer seq = me.sequencer;
-
-		if (seq != null && me.sequence != null) {
+		if (me.sequence != null) {
 			if (theValue == false) {
-				seq.start();
+				me.sequencer.start();
 			} else {
-				seq.stop();
+				me.sequencer.stop();
 				if (loopState != true) {
 					loopTickMin = loopTickMax;
-					loopTickMax = seq.getTickPosition();
+					loopTickMax = me.sequencer.getTickPosition();
 					loopTickMin = (long) min(loopTickMax, loopTickMin);
 					loopTickMax = (long) max(loopTickMax, loopTickMin);
 				} 
@@ -594,37 +589,15 @@ public class GuitarView extends PApplet {
 
 	
 	@SuppressWarnings("unused")
-	private void fwd() { // reset sequencer button
-		Sequencer seq = me.sequencer;
-		if (seq != null) {
-			seq.setTickPosition(seq.getTickPosition() + 5000);
-		}
-		clearFretboard();
-	}
-	
-	@SuppressWarnings("unused")
-	private void rev() { // reset sequencer button
-		Sequencer seq = me.sequencer;
-		if (seq != null) {
-			seq.setTickPosition(seq.getTickPosition() - 5000);
-		}
-		clearFretboard();
-	}
-	
-	@SuppressWarnings("unused")
 	private void load_file() { // load midi file button
 		if (me.sequencer != null) {
 			me.sequencer.stop();
-			// enable all channels
-			for (controlP5.Toggle t : MidiEngine.chanTog) {
-               t.setValue(true);
-			}
 		}
-		clearFretboard();
+		// enable all channels
+		all();
 		selectInput("Select a Midi file to play:", "fileSelected");
 	}
 
-	@SuppressWarnings("unused")
 	private void all() { // turn all channel toggles on
 		for (controlP5.Toggle t : MidiEngine.chanTog) {
 			t.setValue(true);
@@ -644,10 +617,7 @@ public class GuitarView extends PApplet {
 		if (me.sequencer != null) {
 			me.clearFingerMarkers();
 			if (guitarImage != null) {
-				guitarImage.beginDraw();
 				drawGuitar();
-				image(guitarImage, 0, 0);
-				guitarImage.endDraw();
 			}
 		}
 		clearTracers();
@@ -660,19 +630,17 @@ public class GuitarView extends PApplet {
 	
 	public void draw() {
 		background(200,50);
-		guitarImage.beginDraw();
 		image(guitarImage, 0, 0); // render image of guitar from buffer
-		guitarImage.endDraw();
 
 		textSize(25);
-		fill(0xFF000000);
-		text("Guitar View", dX + 1, 26);
-		fill(brass);
+		fill(copper);
 		text("Guitar View", dX, 25);
-		
 		textSize(16);
-	    fill(brass);
 	    text(filename, 3 * dX, height / 11);
+	    
+	    if (/*!me.busy() ||*/ !loadFlag){
+	    	cp5.draw();
+	    }
 	    
 		// draw finger markers on fret board	    
 		for (GuitarChannel c : MidiEngine.gchannels) {
@@ -685,16 +653,9 @@ public class GuitarView extends PApplet {
 			}
 		}
 	}
+	
 
 	public static void main(String _args[]) {
 		PApplet.main(new String[] { GuitarView.class.getName() });
-		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-			public void run() {
-//				GuitarChannel.killChannels(MidiEngine.gchannels, MidiEngine.chanTog);
-//				// call garbage collector to purge channel properties
-//				System.gc();
-//				cp5.saveProperties(("properties"));
-			}
-		}, "Shutdown-thread"));
 	}
 }

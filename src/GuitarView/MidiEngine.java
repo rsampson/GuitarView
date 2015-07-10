@@ -12,7 +12,6 @@ import javax.sound.midi.Track;
 import javax.sound.midi.MidiEvent;
 import javax.sound.midi.MidiMessage;
 import javax.sound.midi.ShortMessage;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +27,7 @@ public class MidiEngine {
 	public static List<controlP5.Toggle> chanTog = new ArrayList<controlP5.Toggle>();  // channel filter switches
 	public static List<GuitarChannel> gchannels = new ArrayList<GuitarChannel>(); 
 	private static int noteCount;
+	private static boolean busyflag;
 	
 	MidiEngine()
 	{
@@ -63,10 +63,16 @@ public class MidiEngine {
 		}
 	}	
 	
+	public boolean busy() {
+		return busyflag;
+	}
+	
 	// Iterates the MIDI events of the first track and if they are a NOTE_ON or
     // NOTE_OFF message, adds them to the second track as a Meta event.
-	private void addNotesToTrack(Track track, Track trk) // throws InvalidMidiDataException
-	{ 
+	private void addNotesToTrack(Track track, Track trk) // throws
+															// InvalidMidiDataException
+	{
+		busyflag = true;
 		int chan;
 		for (int ii = 0; ii < track.size(); ii++) {
 			MidiEvent me = track.get(ii);
@@ -84,9 +90,9 @@ public class MidiEngine {
 					byte[] b = sm.getMessage();
 					int l = (b == null ? 0 : b.length);
 					// create available channels and make them visible
-					chan = b[0] & 0x0f;					
+					chan = b[0] & 0x0f;
 					if ((l >= 1) && GuitarChannel.isNewChannel(chan)) {
-                        gchannels.add(new GuitarChannel(chanTog, chan));
+						gchannels.add(new GuitarChannel(chanTog, chan));
 					}
 					// add note message to meta event track
 					try {
@@ -94,12 +100,14 @@ public class MidiEngine {
 						MidiEvent me2 = new MidiEvent(metaMessage, me.getTick());
 						trk.add(me2);
 					} catch (Exception e) {
-						System.err.println("Can't add Midi events to track " + e);
+						System.err.println("Can't add Midi events to track "
+								+ e);
 						e.printStackTrace();
 					}
 				}
 			}
 		}
+		busyflag = false;
 	}
 	
 	private void printMessage(byte[] dat) {
@@ -107,9 +115,8 @@ public class MidiEngine {
 				+ String.format(" ch %x", dat[0] & 0x0f));
 		System.out.print(" nt " + dat[1] + " vel " + dat[2]);
 		System.out.println();
-		
 		GuitarView.myTextarea.append(String.format(" note %d " + 
-		                             GuitarView.getNoteName(dat[1]) + "\n", dat[1]), 12);
+		                             GuitarView.getNoteNameWithOctave(dat[1]) + "\n", dat[1]), 12);
 	}	
 	
 	private void addNoteAsFingerMarker(byte[] dat) {
@@ -117,15 +124,14 @@ public class MidiEngine {
 		final int channel = dat[0] & 0x0f;
 		int note = dat[1];
 		final int velocity = dat[2];
-		// if (type == NOTE_ON || type == NOTE_OFF) and the note falls on the
-		// guitar fret board
-		if ((command & 0x80) == 0x80 && note < 77 && note > 39) {
+		// if (type == NOTE_ON || type == NOTE_OFF) 
+		if ((command & 0x80) == 0x80) {
 			// only show if channel switch is on
 			if (GuitarChannel.isChannelEnabled(chanTog, channel)) {
-				printMessage(dat);
 				GuitarChannel guitarchannel = GuitarChannel.get(gchannels,
 						channel);
 				if (command == NOTEON && velocity != 0) {
+					printMessage(dat);
 					guitarchannel.noteOn(note);
 				} else /* if (command == NOTEOFF || velocity == 0) */{
 					guitarchannel.noteOff(note);
@@ -147,12 +153,6 @@ public class MidiEngine {
 	}	
 	
 	public void loadSequenceFromFile(File selFile) {
-// create spinner here		
-//		PShape mark, shadow, fingermarker;
-//	    fingermarker = createShape(GROUP);
-//	    head = createShape(ELLIPSE, -25, 0, 50, 50);
-//	    body = createShape(RECT, -25, 45, 50, 40);
-
 		sequencer.stop();
 		GuitarChannel.killChannels(gchannels, chanTog);
 		try {

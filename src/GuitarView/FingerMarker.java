@@ -96,19 +96,6 @@ public class FingerMarker {
 		}
 	  }
 		
-	// use for future change	
-/*	  PShape mark, shadow, fingermarker;
-
-	  fingermarker = createShape(GROUP);
-	  head = createShape(ELLIPSE, -25, 0, 50, 50);
-	  body = createShape(RECT, -25, 45, 50, 40);
-
-	  fingermarker.addChild(mark);
-	  fingermarker.addChild(shadow);
-
-	  // place in draw function
-	  shape(fingermarker); 
-*/
 	  // draw the notes as they are playing
 	  public void draw() {
 		// draw string
@@ -130,15 +117,15 @@ public class FingerMarker {
 			int _x, _y;
 			setInUse(true);
 			pg.beginDraw();
-			pg.fill(myColor, 10);
-			pg.stroke(myColor, 20);
-			pg.ellipse(x, y, mySize / 2, mySize / 2);
+			pg.fill(myColor);
+			pg.stroke(myColor);
+			pg.ellipse(x + vg.random(-4, 4), y + vg.random(-4, 4), mySize / 2, mySize / 2);
 			// draw vector trace
 			pg.strokeWeight(1);
 			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
 			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
-			pg.line(x + vg.random(-5, 5), y + vg.random(-5, 5),
-					_x + vg.random(-5, 5), _y + vg.random(-5, 5));
+			pg.line(x + vg.random(-3, 3), y + vg.random(-3, 3),
+					_x + vg.random(-3, 3), _y + vg.random(-3, 3));
 			pg.endDraw();
 		}
 	}
