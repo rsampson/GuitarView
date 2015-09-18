@@ -1,3 +1,25 @@
+
+/*
+(The MIT License)
+
+Copyright (c) 2015 Richard Allen Sampson
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this 
+software and associated documentation files (the 'Software'), to deal in the Software 
+without restriction, including without limitation the rights to use, copy, modify, merge, 
+publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, 
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR 
+PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE 
+FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, 
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*/
+
 package GuitarView;
 
 /* Used some of the guitar drawing algorithm from :
@@ -45,7 +67,7 @@ public class GuitarView extends PApplet {
     private ControlFont font;
 
     public static ControlP5 cp5;
-     private static Toggle   traceTog; // enable/disable tracing
+    private static Toggle   traceTog; // enable/disable tracing
     private static Toggle   pauseTog;  
     private static Textlabel tuningLabel;
     public static Textarea myTextarea;
@@ -258,7 +280,7 @@ public class GuitarView extends PApplet {
 		drawGuitar(); // setup guitar image in buffer
 		initFingerMarkers();
 		configureUI();
-		frameRate(20);
+//		frameRate(20);
 	}
 
 	private void configureUI() {
@@ -316,12 +338,6 @@ public class GuitarView extends PApplet {
         .setFont(createFont("arial",18))
         ;
  		
- 		cp5.addTextlabel("labelauthor")
-        .setText("v0.01 R. Sampson 2015")
-        .setPosition(26 * dX + 1, 10)
-        .setColorValueLabel(copper)
-        .setFont(createFont("arial",11))
-        ;
 		
 		pauseTog = cp5.addToggle("pause")
 				.setPosition(6 * dX, 5 * dY)
@@ -343,7 +359,7 @@ public class GuitarView extends PApplet {
 		 
 	    cp5.addSlider("tempo")
           .setRange((float).25,(float)1.5)
-          .setValue((float).75)
+          .setValue((float)1)
           .setPosition(dX, 5 * dY)
           .setSize(150, 20)
           .getCaptionLabel()
@@ -366,13 +382,15 @@ public class GuitarView extends PApplet {
 
 	      
         myTextarea = cp5.addTextarea("txt")
-                      .setPosition(width / 2 + 2 * dX,2 * dY)
-                      .setSize(200,200)
+                      .setPosition(width / 2 + 2 * dX,4 * dY)
+                      .setSize(100,150)
                       .setFont(createFont("arial",20))
                       .setLineHeight(16)
                       .setColor(color(128))
                       .setColorBackground(color(255,100))
                       .setColorForeground(color(255,100))
+                      .scroll(1).hideScrollbar()
+                      //.setScrollActive(8)
                       ;
 
 
@@ -430,75 +448,75 @@ public class GuitarView extends PApplet {
 	public void controlEvent(ControlEvent theEvent) {
 		if (theEvent.isController()) {
 
-			print("control event from : " + theEvent.getName() + " \n");
+			//print("control event from : " + theEvent.getName() + " \n");
 			
 			switch (theEvent.getName()) {
 
 			case "Standard":
 				initNotes(standard);
-				tuningLabel.setText("Standard");
+				tuningLabel.setText("standard  e a d g b e");
 				clearFretboard();
 				break;
 			case "MajorThird":
 				initNotes(majorThird);
-				tuningLabel.setText("MajorThird");
+				tuningLabel.setText("majorThird  c e g# c e g#");
 				clearFretboard();
 				break;
 			case "AllFourths":
 				initNotes(allFourths);
-				tuningLabel.setText("AllFourths");
+				tuningLabel.setText("allFourths  e a d g c f");
 				clearFretboard();
 				break;
 			case "AugmentedFourths":
 				initNotes(augmentedFourths);
-				tuningLabel.setText("AugmentedFourths");
+				tuningLabel.setText("augmented4ths  c f# c f# c f#");
 				clearFretboard();
 				break;
 			case "MandoGuitar":
 				initNotes(mandoGuitar);
-				tuningLabel.setText("MandoGuitar");
+				tuningLabel.setText("mandoGuitar  c g d a e b");
 				clearFretboard();
 				break;
 				
 			case "Dobro":
 				initNotes(dobro);
-				tuningLabel.setText("Dobro");
+				tuningLabel.setText("dobro  g b d g b d");
 				clearFretboard();
 				break;
 			case "Overtone":
 				initNotes(overtone);
-				tuningLabel.setText("Overtone");
+				tuningLabel.setText("overtone  c e g a# c d");
 				clearFretboard();
 				break;
 			case "Pentatonic":
 				initNotes(pentatonic);
-				tuningLabel.setText("Pentatonic");
+				tuningLabel.setText("pentatonic  a c d e g a");
 				clearFretboard();
 				break;
 				
 			case "OpenC":
 				initNotes(openC);
-				tuningLabel.setText("OpenC");
+				tuningLabel.setText("openC  c g c g c e");
 				clearFretboard();
 				break;
 			case "OpenD":
 				initNotes(openD);
-				tuningLabel.setText("OpenD");
+				tuningLabel.setText("openD  d a d f# a d");
 				clearFretboard();
 				break;
 			case "OpenG":
 				initNotes(openG);
-				tuningLabel.setText("OpenG");
+				tuningLabel.setText("openG  d g d g b d");
 				clearFretboard();
 				break;
 			case "OpenDMinor":
 				initNotes(openDMinor);
-				tuningLabel.setText("OpenDMinor");
+				tuningLabel.setText("openDMinor  d a d f a d");
 				clearFretboard();
 				break;
 			case "OpenA":
 				initNotes(openA);
-				tuningLabel.setText("OpenA");
+				tuningLabel.setText("openA  e a c# e a e");
 				clearFretboard();
 				break;
 			}

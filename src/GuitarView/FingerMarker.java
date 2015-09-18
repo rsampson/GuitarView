@@ -13,25 +13,25 @@ public class FingerMarker {
 	  // prevent tracers from being drawn over and over
 	  private boolean inUse;
 	  
-	  final static int black = 0xDF2A1F1F;
-	  final static int brown = 0xDF5A2A12; 
-	  final static int red = 0xDFDF0712;
-	  final static int orange = 0xDFE86309;
-	  final static int yellow = 0xDFFFEF00; 
-	  final static int green = 0xDF10D245;
-	  final static int blue = 0xDF1320D0;
-	  final static int violet = 0xDFBC15C2; 
-	  final static int grey = 0xDFC3C3C3;
-	  final static int white = 0xDFF1EFF7;
-	  final static int teal = 0xDF5CB0AE;
+	  final private static int black = 0xDF2A1F1F;
+	  final private static int brown = 0xDF5A2A12; 
+	  final private static int red = 0xDFDF0712;
+	  final private static int orange = 0xDFE86309;
+	  final private static int yellow = 0xDFFFEF00; 
+	  final private static int green = 0xDF10D245;
+	  final private static int blue = 0xDF1320D0;
+	  final private static int violet = 0xDFBC15C2; 
+	  final private static int grey = 0xDFC3C3C3;
+	  final private static int white = 0xDFF1EFF7;
+	  final private static int teal = 0xDF5CB0AE;
 
-	  final static int liteblack  = 0xDF272729;
-	  final static int litebrown  = 0xDF78521B; 
-	  final static int litered    = 0xDFE93737;
-	  final static int liteorange = 0xDFF6AF4A;
-	  final static int liteyellow = 0xDFF8D554; 
-	  final static int litegreen  = 0xDF9CF576;
-	  final public static int invisible  = 0x0;
+	  final private static int liteblack  = 0xDF272729;
+	  final private static int litebrown  = 0xDF78521B; 
+	  final private static int litered    = 0xDFE93737;
+	  final private static int liteorange = 0xDFF6AF4A;
+	  final private static int liteyellow = 0xDFF8D554; 
+	  final private static int litegreen  = 0xDF9CF576;
+	  //final public static int invisible  = 0x0;
 
 	  // a circle must be on the fret of a string when it is created.
 	  FingerMarker(GuitarView vg, PGraphics pg, GuitarString gs, int fret) {
@@ -119,13 +119,13 @@ public class FingerMarker {
 			pg.beginDraw();
 			pg.fill(myColor);
 			pg.stroke(myColor);
-			pg.ellipse(x + vg.random(-4, 4), y + vg.random(-4, 4), mySize / 2, mySize / 2);
+			pg.ellipse(x + vg.random(-5, 5), y + vg.random(-5, 5), mySize / 2, mySize / 2);
 			// draw vector trace
-			pg.strokeWeight(1);
-			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
-			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
-			pg.line(x + vg.random(-3, 3), y + vg.random(-3, 3),
-					_x + vg.random(-3, 3), _y + vg.random(-3, 3));
+//			pg.strokeWeight(1);
+//			_y = GuitarView.strings[gc.getLastStringPlayed()].getY();
+//			_x = GuitarView.fretLines[gc.getLastFretPlayed()] - mySize;
+//			pg.line(x + vg.random(-3, 3), y + vg.random(-3, 3),
+//					_x + vg.random(-3, 3), _y + vg.random(-3, 3));
 			pg.endDraw();
 		}
 	}

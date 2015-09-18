@@ -111,13 +111,14 @@ public class MidiEngine {
 	}
 	
 	private void printMessage(byte[] dat) {
-		System.out.print(String.format(" cmd %x", dat[0] & 0xf0)
-				+ String.format(" ch %x", dat[0] & 0x0f));
-		System.out.print(" nt " + dat[1] + " vel " + dat[2]);
-		System.out.println();
-		GuitarView.myTextarea.append(String.format(" note %d " + 
-		                             GuitarView.getNoteNameWithOctave(dat[1]) + "\n", dat[1]), 12);
-	}	
+		// System.out.print(String.format(" cmd %x", dat[0] & 0xf0)
+		// + String.format(" ch %x", dat[0] & 0x0f));
+		// System.out.print(" nt " + dat[1] + " vel " + dat[2]);
+		// System.out.println();
+		GuitarView.myTextarea.append(
+				String.format(GuitarView.getNoteNameWithOctave(dat[1]) + "\n")
+				);
+	}
 	
 	private void addNoteAsFingerMarker(byte[] dat) {
 		final int command = dat[0] & 0xf0;
